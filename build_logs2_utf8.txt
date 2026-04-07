@@ -1,0 +1,12 @@
+﻿
+> plvadmin@0.0.0 build
+> tsc -b && vite build
+
+src/pages/MedicalRequests.tsx(4,74): error TS6133: 'Check' is declared but its value is never read.
+src/pages/MedicalRequests.tsx(4,81): error TS6133: 'Download' is declared but its value is never read.
+src/pages/MedicalRequests.tsx(4,91): error TS6133: 'Info' is declared but its value is never read.
+src/pages/MedicalRequests.tsx(4,97): error TS6133: 'Pill' is declared but its value is never read.
+src/pages/MedicalRequests.tsx(4,103): error TS6133: 'MoreVertical' is declared but its value is never read.
+src/pages/MedicalRequests.tsx(4,117): error TS6133: 'FileSpreadsheet' is declared but its value is never read.
+src/pages/MedicalRequests.tsx(4,134): error TS6133: 'Plus' is declared but its value is never read.
+src/pages/MedicalRequests.tsx(4,140): error TS6133: 'AlertCircle' is declared but its value is never read.

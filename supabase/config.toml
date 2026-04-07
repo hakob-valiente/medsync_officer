@@ -1,0 +1,11 @@
+[functions.create-google-event]
+verify_jwt = false
+
+[functions.update-google-event]
+verify_jwt = false
+
+[functions.delete-google-event]
+verify_jwt = false
+
+[functions.send-admin-otp]
+verify_jwt = false

@@ -1,0 +1,6 @@
+/* Root shell aligned with PLV MedSync layout
+   The main Layout component handles page structure and spacing. */
+#root {
+  min-height: 100vh;
+}
+

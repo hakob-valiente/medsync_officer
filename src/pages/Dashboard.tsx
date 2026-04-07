@@ -1,0 +1,449 @@
+import { useState } from 'react';
+import {
+    Users,
+    X, ExternalLink, Info, Activity, Clock, AlertTriangle
+} from 'lucide-react';
+import {
+    PieChart, Pie, Cell, Tooltip, ResponsiveContainer
+} from 'recharts';
+import { useStore } from '../hooks/useStore';
+import { CalendarWidget } from '../components/CalendarWidget';
+import { useEffect } from 'react';
+import { fetchAndProcessHealthNews } from '../lib/healthService';
+import { setAdvisories } from '../store';
+import type { HealthAdvisory } from '../types';
+
+// ---- KPI Value Card (3-Second Rule) ----
+function KPICard({
+    icon: Icon, label, value, accent, sub
+}: {
+    icon: React.ElementType;
+    label: string;
+    value: number | string;
+    accent: string;
+    sub?: string;
+}) {
+    return (
+        <div
+            className="kpi-card fade-in"
+            style={{ '--kpi-accent': accent } as React.CSSProperties}
+        >
+            {/* Top accent bar */}
+            <div
+                className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl"
+                style={{ background: accent, opacity: 0.7 }}
+            />
+            <div className="flex items-start justify-between relative z-10">
+                <div>
+                    <p className="kpi-label">{label}</p>
+                    <p className="kpi-value" style={{ marginTop: '6px' }}>{value}</p>
+                    {sub && (
+                        <p className="kpi-sub">{sub}</p>
+                    )}
+                </div>
+                <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: accent + '14' }}
+                >
+                    <Icon size={22} style={{ color: accent }} strokeWidth={1.8} />
+                </div>
+            </div>
+            {/* Subtle decorative circle */}
+            <div
+                className="absolute -right-8 -bottom-8 w-28 h-28 rounded-full"
+                style={{ background: accent, opacity: 0.03 }}
+            />
+        </div>
+    );
+}
+
+// ---- Advisory Modal ----
+function AdvisoryModal({ advisory, onClose }: { advisory: HealthAdvisory; onClose: () => void }) {
+    return (
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay"
+            onClick={onClose}
+        >
+            <div
+                className="rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto fade-in"
+                style={{
+                    background: 'var(--card-bg)',
+                    boxShadow: 'var(--shadow-xl)',
+                }}
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="flex items-start justify-between p-6" style={{ borderBottom: '1px solid var(--border)' }}>
+                    <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider ${advisory.riskLevel === 'HIGH' ? 'text-red-600' :
+                                    advisory.riskLevel === 'MEDIUM' ? 'text-orange-600' : 'text-blue-600'
+                                }`}
+                                style={{
+                                    background: advisory.riskLevel === 'HIGH' ? 'var(--danger-bg)' :
+                                        advisory.riskLevel === 'MEDIUM' ? 'var(--warning-bg)' : 'var(--accent-light)',
+                                    color: advisory.riskLevel === 'HIGH' ? 'var(--danger-text)' :
+                                        advisory.riskLevel === 'MEDIUM' ? 'var(--warning-text)' : 'var(--accent-deep)'
+                                }}
+                            >
+                                AI {advisory.riskLevel} Priority
+                            </span>
+                            <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider"
+                                style={{ background: 'var(--bg-wash)', color: 'var(--text-muted)' }}
+                            >
+                                {advisory.category}
+                            </span>
+                        </div>
+                        <h2 className="text-xl font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>{advisory.title}</h2>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="w-10 h-10 rounded-xl flex items-center justify-center transition-all flex-shrink-0 ml-4 group"
+                        style={{ color: 'var(--text-muted)' }}
+                        onMouseOver={(e) => { e.currentTarget.style.background = 'var(--bg-wash)'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                    >
+                        <X size={20} className="group-hover:rotate-90 transition-transform duration-300" />
+                    </button>
+                </div>
+                <div className="p-6 space-y-6">
+                    <div className="rounded-xl p-5" style={{
+                        background: advisory.riskLevel === 'HIGH' ? 'var(--danger-bg)' :
+                            advisory.riskLevel === 'MEDIUM' ? 'var(--warning-bg)' : 'var(--accent-light)',
+                        borderLeft: `4px solid ${advisory.riskLevel === 'HIGH' ? 'var(--danger)' :
+                            advisory.riskLevel === 'MEDIUM' ? 'var(--warning)' : 'var(--accent)'}`,
+                    }}>
+                        <p className="text-sm leading-relaxed font-medium" style={{ color: 'var(--text-primary)' }}>{advisory.summary}</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {advisory.healthConcerns.length > 0 && (
+                            <div>
+                                <h3 className="font-semibold text-sm uppercase tracking-wider mb-3 flex items-center gap-2"
+                                    style={{ color: 'var(--text-primary)' }}>
+                                    <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--danger)' }} />
+                                    Key Concerns
+                                </h3>
+                                <ul className="space-y-2">
+                                    {advisory.healthConcerns.map((rec, i) => (
+                                        <li key={i} className="flex items-start gap-2 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                                            • {rec}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
+                        {advisory.preventiveActions.length > 0 && (
+                            <div>
+                                <h3 className="font-semibold text-sm uppercase tracking-wider mb-3 flex items-center gap-2"
+                                    style={{ color: 'var(--text-primary)' }}>
+                                    <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--success)' }} />
+                                    Preventive Actions
+                                </h3>
+                                <ul className="space-y-2">
+                                    {advisory.preventiveActions.map((rec, i) => (
+                                        <li key={i} className="flex items-start gap-2 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                                            • {rec}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
+
+                    {advisory.sourceUrl && (
+                        <div className="pt-4 flex items-center justify-between text-xs" style={{ borderTop: '1px solid var(--border-light)', color: 'var(--text-muted)' }}>
+                            <span className="font-medium">Published: {new Date(advisory.publishedAt).toLocaleDateString()}</span>
+                            <a
+                                href={advisory.sourceUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex items-center gap-1.5 font-semibold hover:underline transition-colors uppercase tracking-wider group"
+                                style={{ color: 'var(--accent)' }}
+                            >
+                                <ExternalLink size={12} className="group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />
+                                View Full Report
+                            </a>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ---- Skeleton Loader for Advisories ----
+function AdvisorySkeleton() {
+    return (
+        <div className="rounded-xl p-5 text-left animate-pulse flex flex-col h-[200px]"
+            style={{
+                background: 'var(--card-bg)',
+                border: '1px solid var(--border)',
+                boxShadow: 'var(--shadow-xs)',
+            }}
+        >
+            <div className="flex items-start justify-between mb-3">
+                <div className="w-16 h-4 bg-slate-200 dark:bg-slate-800 opacity-20 rounded-full" />
+                <div className="w-12 h-3 bg-slate-100 dark:bg-slate-900 opacity-20 rounded-full" />
+            </div>
+            <div className="w-3/4 h-5 bg-slate-200 dark:bg-slate-800 opacity-20 rounded-lg mb-3" />
+            <div className="w-full h-3 bg-slate-100 dark:bg-slate-900 opacity-20 rounded-md mb-2" />
+            <div className="w-5/6 h-3 bg-slate-100 dark:bg-slate-900 opacity-20 rounded-md mb-4 flex-1" />
+            <div className="pt-3 border-t border-slate-50 flex items-center justify-between">
+                <div className="w-20 h-3 bg-slate-200 dark:bg-slate-800 opacity-20 rounded-md" />
+                <div className="w-16 h-3 bg-slate-100 dark:bg-slate-900 opacity-20 rounded-md" />
+            </div>
+        </div>
+    );
+}
+
+// ---- Main Dashboard Page ----
+export default function Dashboard() {
+    const state = useStore();
+    const [selectedAdvisory, setSelectedAdvisory] = useState<HealthAdvisory | null>(null);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [showAllNews, setShowAllNews] = useState(false);
+
+    const requestVolumeData = [
+        { name: 'Appointment', value: state.appointments.length, color: '#E25C5C' },
+        { name: 'Medicine Requests', value: state.medicineRequests.length, color: '#E5A832' },
+        { name: 'Med Cert Requests', value: state.medicalCertRequests.length, color: '#48BBEE' },
+        { name: 'General Inquiry', value: state.inquiries.length, color: '#8896AA' },
+    ];
+
+    useEffect(() => {
+        const loadNews = async () => {
+            if (state.advisories.length === 0) {
+                setIsRefreshing(true);
+                const news = await fetchAndProcessHealthNews();
+                setAdvisories(news);
+                setIsRefreshing(false);
+            }
+        };
+        loadNews();
+    }, [state.advisories.length]);
+
+    const totalClinics = state.campuses.filter((c) => c.active).length;
+    const totalUsers = state.users.length;
+    const lowStockItems = state.inventory.filter((i) => i.status === 'Low').length;
+
+    // Count pending appointments
+    const pendingAppointments = state.appointments.filter(
+        (a) => a.status?.toUpperCase() === 'PENDING'
+    ).length;
+
+    return (
+        <div className="space-y-5">
+            {/* Page Header */}
+            <div>
+                <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                    Dashboard Overview
+                </h2>
+                <p className="text-sm mt-0.5 font-medium opacity-70" style={{ color: 'var(--text-secondary)' }}>
+                    Welcome back, Admin. Here's your health network snapshot.
+                </p>
+            </div>
+
+            {/* ── KPI Value Cards — 3-Second Rule ── */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+                <KPICard icon={Clock} label="Pending Appointments" value={pendingAppointments} accent="#E5A832" sub="Awaiting schedule" />
+                <KPICard icon={Activity} label="Active Clinics" value={totalClinics} accent="#48BBEE" sub="All campuses" />
+                <KPICard icon={Users} label="Patient Records" value={totalUsers} accent="#2EBD85" sub="Registered patients" />
+                <KPICard icon={AlertTriangle} label="Low Stock Items" value={lowStockItems} accent="#E25C5C" sub="Needs restocking" />
+            </div>
+
+            {/* ── AI Health Advisories ── */}
+            <div className="space-y-3">
+                <div className="flex items-center justify-between px-1">
+                    <div className="flex items-center gap-2.5">
+                        <div className="w-1.5 h-5 rounded-full" style={{ background: 'var(--accent)' }} />
+                        <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: 'var(--text-primary)' }}>
+                            Global Health Snapshots
+                        </h3>
+                        {isRefreshing && (
+                            <div
+                                className="ml-2 w-4 h-4 rounded-full animate-spin"
+                                style={{ border: '2px solid var(--accent)', borderTopColor: 'transparent' }}
+                            />
+                        )}
+                    </div>
+                    <button
+                        onClick={async () => {
+                            setIsRefreshing(true);
+                            const news = await fetchAndProcessHealthNews();
+                            setAdvisories(news);
+                            setIsRefreshing(false);
+                        }}
+                        className="text-[10px] font-semibold uppercase tracking-wider hover:underline disabled:opacity-50"
+                        style={{ color: 'var(--accent)' }}
+                        disabled={isRefreshing}
+                    >
+                        {isRefreshing ? 'Processing...' : 'Sync News'}
+                    </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {isRefreshing ? (
+                        Array.from({ length: showAllNews ? 6 : 3 }).map((_, i) => <AdvisorySkeleton key={i} />)
+                    ) : (
+                        state.advisories.slice(0, showAllNews ? state.advisories.length : 3).map((adj) => (
+                            <button
+                                key={adj.id}
+                                className="rounded-xl p-5 text-left transition-all duration-300 group relative overflow-hidden flex flex-col h-full"
+                                style={{
+                                    background: 'var(--card-bg)',
+                                    border: '1px solid var(--border)',
+                                    boxShadow: 'var(--shadow-xs)',
+                                }}
+                                onClick={() => setSelectedAdvisory(adj)}
+                                onMouseOver={(e) => {
+                                    e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                                    e.currentTarget.style.borderColor = 'var(--accent)';
+                                    e.currentTarget.style.transform = 'translateY(-2px)';
+                                }}
+                                onMouseOut={(e) => {
+                                    e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
+                                    e.currentTarget.style.borderColor = 'var(--border)';
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                }}
+                            >
+                                <div className="flex items-start justify-between mb-3 relative z-10">
+                                    <div className="px-2.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider"
+                                        style={{
+                                            background: adj.riskLevel === 'HIGH' ? 'var(--danger-bg)' :
+                                                adj.riskLevel === 'MEDIUM' ? 'var(--warning-bg)' : 'var(--accent-light)',
+                                            color: adj.riskLevel === 'HIGH' ? 'var(--danger-text)' :
+                                                adj.riskLevel === 'MEDIUM' ? 'var(--warning-text)' : 'var(--accent-deep)'
+                                        }}
+                                    >
+                                        {adj.riskLevel} Risk
+                                    </div>
+                                    <div className="text-[9px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-faint)' }}>
+                                        {adj.category}
+                                    </div>
+                                </div>
+
+                                <h4 className="font-semibold text-sm mb-2 line-clamp-1 leading-snug transition-colors relative z-10"
+                                    style={{ color: 'var(--text-primary)' }}>
+                                    {adj.title}
+                                </h4>
+
+                                <p className="text-xs line-clamp-2 leading-relaxed mb-4 flex-1 relative z-10" style={{ color: 'var(--text-muted)' }}>
+                                    {adj.oneSentenceSummary || adj.summary.replace('⚠️', '')}
+                                </p>
+
+                                <div className="flex items-center justify-between pt-3 relative z-10" style={{ borderTop: '1px solid var(--border-light)' }}>
+                                    <span className="text-[10px] font-semibold uppercase tracking-wider group-hover:translate-x-0.5 transition-transform" style={{ color: 'var(--accent)' }}>
+                                        Read Insights →
+                                    </span>
+                                    <span className="text-[9px] font-medium" style={{ color: 'var(--text-faint)' }}>
+                                        {new Date(adj.publishedAt).toLocaleDateString()}
+                                    </span>
+                                </div>
+
+                                {/* Subtle background decoration */}
+                                <div
+                                    className="absolute -right-4 -bottom-4 w-16 h-16 rounded-full group-hover:scale-150 transition-transform duration-500"
+                                    style={{
+                                        background: adj.riskLevel === 'HIGH' ? 'var(--danger)' : 'var(--accent)',
+                                        opacity: 0.03,
+                                    }}
+                                />
+                            </button>
+                        ))
+                    )}
+
+                    {state.advisories.length === 0 && !isRefreshing && (
+                        <div
+                            className="col-span-full py-12 flex flex-col items-center justify-center rounded-xl"
+                            style={{
+                                background: 'var(--bg-wash)',
+                                border: '2px dashed var(--border)',
+                                color: 'var(--text-muted)',
+                            }}
+                        >
+                            <Info size={32} className="mb-2 opacity-20" />
+                            <p className="text-sm font-medium uppercase tracking-wider opacity-50">No health insights found</p>
+                            <p className="text-xs mt-1">Try syncing news to generate fresh advisories.</p>
+                        </div>
+                    )}
+                </div>
+
+                {state.advisories.length > 3 && (
+                    <div className="flex justify-center pt-2">
+                        <button
+                            onClick={() => setShowAllNews(!showAllNews)}
+                            className="px-5 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all hover:bg-black/5"
+                            style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)', background: 'var(--card-bg)' }}
+                        >
+                            {showAllNews ? 'Show Less' : 'Show More'}
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            {/* ── Dashboard Content Grid ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                {/* Clinic Calendar */}
+                <div className="lg:col-span-2 fade-in">
+                    <CalendarWidget />
+                </div>
+
+                {/* Request Volume */}
+                    <div
+                        className="rounded-xl p-5 fade-in"
+                        style={{
+                            background: 'var(--card-bg)',
+                            border: '1px solid var(--border)',
+                            boxShadow: 'var(--shadow-sm)',
+                        }}
+                    >
+                        <div className="mb-4">
+                            <h3 className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>Request Volume</h3>
+                            <p className="text-xs font-normal" style={{ color: 'var(--text-muted)' }}>By type breakdown</p>
+                        </div>
+                        <ResponsiveContainer width="100%" height={180}>
+                            <PieChart>
+                                <Pie
+                                    data={requestVolumeData}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={50}
+                                    outerRadius={80}
+                                    paddingAngle={3}
+                                    dataKey="value"
+                                >
+                                    {requestVolumeData.map((entry, index) => (
+                                        <Cell key={index} fill={entry.color} />
+                                    ))}
+                                </Pie>
+                                <Tooltip
+                                    contentStyle={{
+                                        borderRadius: '12px',
+                                        border: '1px solid var(--border)',
+                                        fontSize: '12px',
+                                        background: 'var(--card-bg)',
+                                        color: 'var(--text-primary)',
+                                    }}
+                                />
+                            </PieChart>
+                        </ResponsiveContainer>
+                        <div className="space-y-2 mt-3">
+                            {requestVolumeData.map((item) => (
+                                <div key={item.name} className="flex items-center justify-between text-xs">
+                                    <div className="flex items-center gap-2.5">
+                                        <div className="w-2.5 h-2.5 rounded-full" style={{ background: item.color }} />
+                                        <span className="font-normal" style={{ color: 'var(--text-secondary)' }}>{item.name}</span>
+                                    </div>
+                                    <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{item.value}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+            </div>
+
+            {/* Advisory Modal */}
+            {selectedAdvisory && <AdvisoryModal advisory={selectedAdvisory} onClose={() => setSelectedAdvisory(null)} />}
+        </div>
+    );
+}
