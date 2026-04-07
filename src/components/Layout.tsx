@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet } from 'react-router-dom';
 import {
     LayoutDashboard, Package, ClipboardList, LogOut, Bell,
     MessageSquare, Calendar, Moon, Sun, Users, ShieldCheck, ChevronLeft, ChevronRight
@@ -54,43 +54,12 @@ export default function Layout() {
     const pendingMedReqs = medicineRequests.filter(r => r.status?.toUpperCase() === 'PENDING').length;
     const pendingInquiries = inquiries.filter((i: any) => !i.completed_timestamp).length;
 
-    const navigate = useNavigate();
 
     const unreadCount = notifications.filter(n => !readNotificationIds.includes(n.id)).length;
 
-    const markAsRead = async (id: string) => {
-        if (!readNotificationIds.includes(id)) {
-            const { markAdminNotificationAsReadDB } = await import('../store');
-            await markAdminNotificationAsReadDB(id);
-        }
-    };
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const handleNotificationClick = (notif: any) => {
-        markAsRead(notif.id);
-        setShowNotifications(false);
-        
-        const type = notif.notification_type || '';
-        if (type.includes('appointment')) {
-            navigate('/appointments', { state: { viewId: notif.target_id } });
-        } else if (type.includes('medicine_request') || type.includes('medical_cert')) {
-            navigate('/requests', { state: { viewId: notif.target_id, tab: type.includes('medical_cert') ? 'certificate' : 'medicine' } });
-        } else if (type.includes('inquiry')) {
-            navigate('/inquiries', { state: { viewId: notif.target_id } });
-        } else {
-            console.log('No specific route for type:', type);
-        }
-    };
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const markAllAsRead = async () => {
-        const { markAdminNotificationAsReadDB } = await import('../store');
-        for (const n of notifications) {
-            if (!readNotificationIds.includes(n.id)) {
-                await markAdminNotificationAsReadDB(n.id);
-            }
-        }
-    };
+
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 60000);

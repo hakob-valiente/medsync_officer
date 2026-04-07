@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Eye, X, Activity, Contact, HeartPulse, Plus, Trash2 } from 'lucide-react';
+import { Search, Eye, X, Activity, Contact, HeartPulse } from 'lucide-react';
 import { useStore } from '../hooks/useStore';
 import { fetchUsersFromDB, fetchVisitRecords, deleteUserDB, addUserDB, updateUserDB, addVisitRecordDB, updateVisitRecordDB, deleteVisitRecordDB } from '../store';
 import { notifyIndividual } from '../lib/notifications';
