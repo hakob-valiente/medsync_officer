@@ -8,4 +8,7 @@ export default defineConfig({
     react(),
   ],
   envPrefix: ['VITE_', 'EXPO_PUBLIC_'],
+  server: {
+    port: 5174,
+  },
 })

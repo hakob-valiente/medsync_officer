@@ -423,7 +423,7 @@ export default function Inventory() {
                         className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all"
                         style={{ color: 'var(--accent)', background: 'var(--accent-light)', border: '1px solid rgba(72,187,238,0.15)' }}
                     >
-                        <Plus size={16} /> Add New Asset
+                        <Plus size={16} /> Add New Item
                     </button>
                 </div>
             </div>
@@ -523,7 +523,7 @@ export default function Inventory() {
                             <option value="EXPIRING">Expiring (30d)</option>
                             <option value="LOW">Low Stock</option>
                         </select>
-                         <ChevronDown size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-faint)' }} />
+                        <ChevronDown size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-faint)' }} />
                     </div>
 
                     <div className="flex items-center p-1.5 rounded-2xl shadow-sm" style={{ background: 'var(--bg-wash)', border: '1px solid var(--border)' }}>
@@ -676,7 +676,7 @@ export default function Inventory() {
                                     </tbody>
                                 </table>
                             </div>
-                             <div className="px-6 py-4 flex items-center justify-between mt-auto" style={{ background: 'var(--bg-wash)', borderTop: '1px solid var(--border)' }}>
+                            <div className="px-6 py-4 flex items-center justify-between mt-auto" style={{ background: 'var(--bg-wash)', borderTop: '1px solid var(--border)' }}>
                                 <div className="flex items-center gap-4 ml-auto">
                                     <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
                                         Page {currentPage} of {Math.max(1, totalPages)}
@@ -768,8 +768,8 @@ export default function Inventory() {
                                 ))}
                             </div>
 
-                             {/* Standardized Pagination UI for Grid */}
-                             <div className="flex items-center justify-between p-4 rounded-3xl mt-4 shadow-sm" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
+                            {/* Standardized Pagination UI for Grid */}
+                            <div className="flex items-center justify-between p-4 rounded-3xl mt-4 shadow-sm" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
                                 <div className="flex items-center gap-4 ml-auto">
                                     <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
                                         Page {currentPage} of {Math.max(1, totalPages)}

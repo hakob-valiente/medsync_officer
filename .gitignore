@@ -16,7 +16,11 @@ dist-ssr
 .env
 .env.local
 .env.production
+.env.keys
 *.local
+
+# Google Cloud Service Account Key
+plv-medsync-c0f24b1f57c1.json
 
 # Editor directories and files
 .vscode/*
