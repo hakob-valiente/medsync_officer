@@ -17,7 +17,7 @@ import {
     ViewAcceptedAppointmentModal,
     RejectAppointmentModal
 } from './AppointmentModals';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, Calendar, X } from 'lucide-react';
 
 export function AppointmentsCalendarWidget() {
     const calendarRef = useRef<FullCalendar>(null);
@@ -30,6 +30,7 @@ export function AppointmentsCalendarWidget() {
     const [sendBackConfirm, setSendBackConfirm] = useState<any | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [successToast, setSuccessToast] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
+    const [moreEventsModal, setMoreEventsModal] = useState<{ show: boolean; events: any[]; date: Date | null }>({ show: false, events: [], date: null });
 
     // Ensure data is fetched on mount
     useEffect(() => {
@@ -185,7 +186,9 @@ export function AppointmentsCalendarWidget() {
                         eventTextColor="#ffffff"
                         height="100%"
                         navLinks={true}
-                        dayMaxEvents={3}
+                        selectable={true}
+                        selectMirror={true}
+                        dayMaxEvents={true}
                         eventClick={handleEventClick}
                         dayCellClassNames={(arg) => {
                             const today = new Date();
@@ -196,6 +199,11 @@ export function AppointmentsCalendarWidget() {
                             hour: 'numeric',
                             minute: '2-digit',
                             meridiem: 'short'
+                        }}
+                        moreLinkClick={(info) => {
+                            const evs = info.allSegs.map(s => s.event);
+                            setMoreEventsModal({ show: true, events: evs, date: info.date });
+                            return "none";
                         }}
                     />
                 </div>
@@ -235,6 +243,53 @@ export function AppointmentsCalendarWidget() {
                 />
             )}
 
+            {/* Custom More Events Modal */}
+            {moreEventsModal.show && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px]" onClick={() => setMoreEventsModal({ ...moreEventsModal, show: false })}>
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/50">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-2xl bg-[var(--accent-light)] text-[var(--accent)] flex items-center justify-center shadow-sm">
+                                    <Calendar size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-slate-900">Appointments</h3>
+                                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                                        {moreEventsModal.date?.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                                    </p>
+                                </div>
+                            </div>
+                            <button onClick={() => setMoreEventsModal({ ...moreEventsModal, show: false })} className="w-10 h-10 rounded-xl hover:bg-slate-200 flex items-center justify-center text-slate-400 transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-4 max-h-[60vh] overflow-y-auto space-y-3">
+                            {moreEventsModal.events.map((event: any, i: number) => (
+                                <div 
+                                    key={i} 
+                                    onClick={() => {
+                                        handleEventClick({ event, jsEvent: { preventDefault: () => {} } });
+                                        setMoreEventsModal({ ...moreEventsModal, show: false });
+                                    }}
+                                    className="p-3 rounded-2xl border border-slate-100 hover:border-[var(--accent)] hover:bg-blue-50/30 transition-all cursor-pointer group flex items-center gap-3"
+                                >
+                                    <div className="w-1.5 h-8 rounded-full" style={{ background: event.backgroundColor || 'var(--accent)' }} />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-bold text-slate-800 truncate group-hover:text-[var(--accent)] transition-colors">{event.title}</p>
+                                        <p className="text-[11px] font-medium text-slate-500 mt-0.5">
+                                            {event.start?.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                                        </p>
+                                    </div>
+                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="px-3 py-1 rounded-full bg-[var(--accent)] text-white text-[10px] font-bold uppercase tracking-wider">View</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {sendBackConfirm && (
                 <RejectAppointmentModal
                     appointment={sendBackConfirm}
@@ -257,20 +312,21 @@ export function AppointmentsCalendarWidget() {
                 .fc .fc-button-primary { background: #f8fafc !important; border: 1px solid #e2e8f0 !important; color: #475569 !important; font-size: 0.8rem; font-weight: 600; text-transform: capitalize; }
                 .fc .fc-button-primary:hover { background: #f1f5f9 !important; }
                 .fc .fc-button-active { background: var(--accent) !important; border-color: var(--accent) !important; color: white !important; }
-                .fc-event { border: none !important; box-shadow: none !important; padding: 2px 6px !important; margin: 1px 2px !important; border-radius: 6px !important; cursor: pointer; transition: transform 0.1s; }
-                .fc-daygrid-event { white-space: normal !important; height: auto !important; border: none !important; background-image: none !important; }
+                .fc-event { border: none !important; box-shadow: none !important; padding: 1px 4px !important; margin: 2px 5px !important; border-radius: 6px !important; cursor: pointer; transition: transform 0.1s; }
+                .fc-daygrid-event { white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; height: auto !important; border: none !important; background-image: none !important; }
                 .fc-event:focus, .fc-event:active { outline: none !important; border: none !important; }
                 .fc-v-event { border: none !important; }
                 .fc-h-event { border: none !important; }
                 .fc-bg-scheduled { background-color: #10B981 !important; color: #FFFFFF !important; }
                 .fc-bg-pending { background-color: #F59E0B !important; color: #FFFFFF !important; }
                 .fc-bg-past { background-color: #94A3B8 !important; color: #1E293B !important; opacity: 0.8; }
-                .fc-event-title, .fc-event-time { font-size: 0.72rem !important; font-weight: 700 !important; vertical-align: middle; }
+                .fc-event-title { font-size: 0.7rem !important; font-weight: 700 !important; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block !important; margin-left: 2px; max-width: 100%; }
+                .fc-event-time { font-size: 0.7rem !important; font-weight: 600 !important; opacity: 0.9; }
                 @media (max-width: 767px) {
-                    .fc-event-title, .fc-event-time { font-size: 0.6rem !important; }
-                    .fc-event { padding: 1px 3px !important; }
+                    .fc-event-title { font-size: 0.58rem !important; }
+                    .fc-event-time { font-size: 0.58rem !important; }
+                    .fc-event { padding: 1px 2px !important; margin: 1px 3px !important; }
                 }
-                .fc-event-title { display: inline-block; margin-left: 2px; }
                 .fc-daygrid-event-dot { border-color: white !important; }
                 .fc-day-past-custom { 
                     background-color: #f1f5f9 !important; 
@@ -278,6 +334,33 @@ export function AppointmentsCalendarWidget() {
                 .fc-day-today { background: #eff6ff !important; border: 2px solid var(--accent) !important; z-index: 10; position: relative; }
                 .fc-day-today::after { content: 'TODAY'; position: absolute; top: 2px; left: 2px; font-size: 8px; font-weight: 900; color: var(--accent); background: white; padding: 2px 4px; border-radius: 4px; border: 1px solid var(--accent); }
                 .fc-daygrid-day-number { font-size: 0.8rem; font-weight: 700; color: #64748b; padding: 10px !important; }
+                .fc-popover {
+                    z-index: 1000 !important;
+                    background: white !important;
+                    border: 1px solid #e2e8f0 !important;
+                    border-radius: 12px !important;
+                    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+                    overflow: hidden !important;
+                }
+                .fc-popover-header {
+                    background: #f8fafc !important;
+                    padding: 8px 12px !important;
+                    font-size: 0.8rem !important;
+                    font-weight: 700 !important;
+                    color: #1e293b !important;
+                    border-bottom: 1px solid #e2e8f0 !important;
+                }
+                .fc-popover-body {
+                    padding: 8px !important;
+                }
+                .fc-daygrid-more-link {
+                    font-size: 0.7rem !important;
+                    font-weight: 800 !important;
+                    color: var(--accent) !important;
+                    margin-top: 2px !important;
+                    display: block !important;
+                    text-align: center !important;
+                }
             `}</style>
         </div>
     );

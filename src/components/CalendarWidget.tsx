@@ -28,6 +28,7 @@ export function CalendarWidget() {
     });
     const [successToast, setSuccessToast] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
     const [confirmAction, setConfirmAction] = useState<{ show: boolean; type: 'save' | 'delete'; payload?: any }>({ show: false, type: 'save' });
+    const [moreEventsModal, setMoreEventsModal] = useState<{ show: boolean; events: any[]; date: Date | null }>({ show: false, events: [], date: null });
 
     const GOOGLE_CALENDAR_ID = import.meta.env.VITE_GOOGLE_CALENDAR_ID;
     const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_CALENDAR_API_KEY;
@@ -206,7 +207,7 @@ export function CalendarWidget() {
                 </span>
             </div>
 
-            <div className="calendar-container overflow-auto relative flex-1" style={{ minHeight: '500px' }}>
+            <div className="calendar-container relative flex-1" style={{ minHeight: '500px' }}>
                 <FullCalendar
                     ref={calendarRef}
                     plugins={plugins}
@@ -224,6 +225,11 @@ export function CalendarWidget() {
                     height="100%"
                     slotLabelFormat={{ hour: 'numeric', minute: '2-digit', hour12: true }}
                     eventTimeFormat={{ hour: 'numeric', minute: '2-digit', hour12: true }}
+                    moreLinkClick={(info) => {
+                        const evs = info.allSegs.map(s => s.event);
+                        setMoreEventsModal({ show: true, events: evs, date: info.date });
+                        return "none"; 
+                    }}
                 />
             </div>
 
@@ -411,7 +417,53 @@ export function CalendarWidget() {
                 isLoading={isSubmitting || isDeleting}
             />
 
-            {/* Success Toast */}
+            {/* Custom More Events Modal */}
+            {moreEventsModal.show && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px]" onClick={() => setMoreEventsModal({ ...moreEventsModal, show: false })}>
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/50">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-2xl bg-[var(--accent-light)] text-[var(--accent)] flex items-center justify-center shadow-sm">
+                                    <Calendar size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-slate-900">Appointments</h3>
+                                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                                        {moreEventsModal.date?.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                                    </p>
+                                </div>
+                            </div>
+                            <button onClick={() => setMoreEventsModal({ ...moreEventsModal, show: false })} className="w-10 h-10 rounded-xl hover:bg-slate-200 flex items-center justify-center text-slate-400 transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-4 max-h-[60vh] overflow-y-auto space-y-3">
+                            {moreEventsModal.events.map((event: any, i: number) => (
+                                <div 
+                                    key={i} 
+                                    onClick={() => {
+                                        handleEventClick({ event, jsEvent: { preventDefault: () => {} } });
+                                        setMoreEventsModal({ ...moreEventsModal, show: false });
+                                    }}
+                                    className="p-3 rounded-2xl border border-slate-100 hover:border-[var(--accent)] hover:bg-blue-50/30 transition-all cursor-pointer group flex items-center gap-3"
+                                >
+                                    <div className="w-1.5 h-8 rounded-full" style={{ background: event.backgroundColor || 'var(--accent)' }} />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-bold text-slate-800 truncate group-hover:text-[var(--accent)] transition-colors">{event.title}</p>
+                                        <p className="text-[11px] font-medium text-slate-500 mt-0.5">
+                                            {event.start?.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                                        </p>
+                                    </div>
+                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="px-3 py-1 rounded-full bg-[var(--accent)] text-white text-[10px] font-bold uppercase tracking-wider">View</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {successToast.show && (
                 <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[200] pointer-events-none">
                     <div className="bg-white rounded-2xl shadow-2xl px-6 py-3 border border-emerald-100 flex items-center gap-3 animate-bounce-subtle">
@@ -431,9 +483,60 @@ export function CalendarWidget() {
                 .fc .fc-button-active { background-color: var(--accent) !important; color: white !important; border-color: var(--accent) !important; }
                 .fc-theme-standard th { background: var(--bg-wash); padding: 4px 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: var(--text-secondary); }
                 .fc-daygrid-day-number { font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); }
-                .fc-event { cursor: pointer; transition: opacity 0.2s; }
+                .fc-event { 
+                    cursor: pointer; 
+                    transition: opacity 0.2s; 
+                    margin: 2px 5px !important; 
+                    padding: 1px 4px !important; 
+                    border-radius: 4px !important;
+                    border: none !important;
+                }
+                .fc-daygrid-event {
+                    white-space: nowrap !important;
+                    overflow: hidden !important;
+                    text-overflow: ellipsis !important;
+                }
+                .fc-event-title {
+                    font-size: 0.7rem !important;
+                    font-weight: 600 !important;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+                .fc-event-time {
+                    font-size: 0.7rem !important;
+                    font-weight: 600 !important;
+                    opacity: 0.9;
+                }
                 .fc-event:hover { opacity: 0.9; }
                 .fc-timegrid-slot-label { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); }
+                .fc-popover {
+                    z-index: 1000 !important;
+                    background: var(--card-bg) !important;
+                    border: 1px solid var(--border-light) !important;
+                    border-radius: 12px !important;
+                    box-shadow: var(--shadow-xl) !important;
+                    overflow: hidden !important;
+                }
+                .fc-popover-header {
+                    background: var(--bg-wash) !important;
+                    padding: 8px 12px !important;
+                    font-size: 0.8rem !important;
+                    font-weight: 700 !important;
+                    color: var(--text-primary) !important;
+                    border-bottom: 1px solid var(--border-light) !important;
+                }
+                .fc-popover-body {
+                    padding: 8px !important;
+                }
+                .fc-daygrid-more-link {
+                    font-size: 0.7rem !important;
+                    font-weight: 800 !important;
+                    color: var(--accent) !important;
+                    margin-top: 2px !important;
+                    display: block !important;
+                    text-align: center !important;
+                }
             `}</style>
         </div>
     );
