@@ -47,22 +47,22 @@ function CampusFormModal({ campus, onClose, onSave, isSubmitting }: {
                 </div>
                 <div className="p-5 space-y-4">
                     <div>
-                        <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>Campus Name</label>
+                        <label className="block text-[15px] font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>Campus Name</label>
                         <input
                             value={form.name}
                             onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))}
                             placeholder="e.g. PLV Main Campus"
-                            className="w-full rounded-xl px-4 py-2.5 text-sm outline-none"
+                            className="w-full rounded-xl px-4 py-2.5 text-[15px] outline-none"
                             style={{ border: '1px solid var(--border)', background: 'var(--bg-wash)', color: 'var(--text-primary)' }}
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>Barangay Location</label>
+                        <label className="block text-[15px] font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>Barangay Location</label>
                         <div className="relative">
                             <select
                                 value={form.location}
                                 onChange={(e) => setForm(p => ({ ...p, location: e.target.value }))}
-                                className="w-full appearance-none rounded-xl px-4 py-2.5 pr-10 text-sm outline-none font-normal"
+                                className="w-full appearance-none rounded-xl px-4 py-2.5 pr-10 text-[15px] outline-none font-normal"
                                 style={{ border: '1px solid var(--border)', background: 'var(--bg-wash)', color: 'var(--text-primary)' }}
                             >
                                 <option value="">— Select Barangay —</option>
@@ -72,7 +72,7 @@ function CampusFormModal({ campus, onClose, onSave, isSubmitting }: {
                         </div>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>Contact Number (Numeric only)</label>
+                        <label className="block text-[15px] font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>Contact Number (Numeric only)</label>
                         <input
                             value={form.contact}
                             onChange={(e) => {
@@ -82,7 +82,7 @@ function CampusFormModal({ campus, onClose, onSave, isSubmitting }: {
                                 }
                             }}
                             placeholder="e.g. 09123456789"
-                            className="w-full rounded-xl px-4 py-2.5 text-sm outline-none"
+                            className="w-full rounded-xl px-4 py-2.5 text-[15px] outline-none"
                             style={{ border: '1px solid var(--border)', background: 'var(--bg-wash)', color: 'var(--text-primary)' }}
                         />
                     </div>
@@ -96,12 +96,12 @@ function CampusFormModal({ campus, onClose, onSave, isSubmitting }: {
                                 className="w-4 h-4 rounded"
                                 style={{ accentColor: 'var(--accent)' }}
                             />
-                            <label htmlFor="campus-active" className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Operational Status (Active)</label>
+                            <label htmlFor="campus-active" className="text-[15px] font-medium" style={{ color: 'var(--text-primary)' }}>Operational Status (Active)</label>
                         </div>
                     )}
                 </div>
                 <div className="flex gap-3 px-5 pb-5">
-                    <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-normal transition-colors"
+                    <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-[15px] font-normal transition-colors"
                         style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
                         onMouseOver={e => { e.currentTarget.style.background = 'var(--bg-wash)'; }}
                         onMouseOut={e => { e.currentTarget.style.background = 'transparent'; }}
@@ -111,7 +111,7 @@ function CampusFormModal({ campus, onClose, onSave, isSubmitting }: {
                     <button
                         onClick={() => onSave(form)}
                         disabled={!valid || isSubmitting}
-                        className="btn-cta flex-1 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-40 transition-all active:scale-95"
+                        className="btn-cta flex-1 py-2.5 rounded-xl text-[15px] font-medium text-white disabled:opacity-40 transition-all active:scale-95"
                     >
                         {isSubmitting ? 'Saving...' : campus ? 'Update Campus' : 'Add Campus'}
                     </button>
@@ -152,22 +152,22 @@ function ClinicFormModal({ clinic, campuses, onClose, onSave, isSubmitting }: {
                 </div>
                 <div className="p-5 space-y-4">
                     <div>
-                        <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>Clinic Name</label>
+                        <label className="block text-[15px] font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>Clinic Name</label>
                         <input
                             value={form.name}
                             onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))}
                             placeholder="e.g. Main Health Clinic"
-                            className="w-full rounded-xl px-4 py-2.5 text-sm outline-none"
+                            className="w-full rounded-xl px-4 py-2.5 text-[15px] outline-none"
                             style={{ border: '1px solid var(--border)', background: 'var(--bg-wash)', color: 'var(--text-primary)' }}
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>Campus Assignment</label>
+                        <label className="block text-[15px] font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>Campus Assignment</label>
                         <div className="relative">
                             <select
                                 value={form.campusId}
                                 onChange={(e) => setForm(p => ({ ...p, campusId: e.target.value }))}
-                                className="w-full appearance-none rounded-xl px-4 py-2.5 pr-10 text-sm outline-none font-normal"
+                                className="w-full appearance-none rounded-xl px-4 py-2.5 pr-10 text-[15px] outline-none font-normal"
                                 style={{ border: '1px solid var(--border)', background: 'var(--bg-wash)', color: 'var(--text-primary)' }}
                             >
                                 <option value="">— Select Campus —</option>
@@ -177,7 +177,7 @@ function ClinicFormModal({ clinic, campuses, onClose, onSave, isSubmitting }: {
                         </div>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>Contact Number (Numeric only)</label>
+                        <label className="block text-[15px] font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>Contact Number (Numeric only)</label>
                         <input
                             value={form.contact}
                             onChange={(e) => {
@@ -187,13 +187,13 @@ function ClinicFormModal({ clinic, campuses, onClose, onSave, isSubmitting }: {
                                 }
                             }}
                             placeholder="e.g. 85270000"
-                            className="w-full rounded-xl px-4 py-2.5 text-sm outline-none"
+                            className="w-full rounded-xl px-4 py-2.5 text-[15px] outline-none"
                             style={{ border: '1px solid var(--border)', background: 'var(--bg-wash)', color: 'var(--text-primary)' }}
                         />
                     </div>
                 </div>
                 <div className="flex gap-3 px-5 pb-5">
-                    <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-normal transition-colors"
+                    <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-[15px] font-normal transition-colors"
                         style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
                         onMouseOver={e => { e.currentTarget.style.background = 'var(--bg-wash)'; }}
                         onMouseOut={e => { e.currentTarget.style.background = 'transparent'; }}
@@ -203,7 +203,7 @@ function ClinicFormModal({ clinic, campuses, onClose, onSave, isSubmitting }: {
                     <button
                         onClick={() => onSave(form)}
                         disabled={!valid || isSubmitting}
-                        className="btn-cta flex-1 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-40 transition-all active:scale-95"
+                        className="btn-cta flex-1 py-2.5 rounded-xl text-[15px] font-medium text-white disabled:opacity-40 transition-all active:scale-95"
                     >
                         {isSubmitting ? 'Saving...' : clinic ? 'Update Clinic' : 'Create Clinic'}
                     </button>
@@ -243,7 +243,7 @@ function CampusCard({
             />
             <div className="flex items-start justify-between mb-4">
                 <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-xs font-bold shadow-sm"
+                    className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-[13px] font-bold shadow-sm"
                     style={{ background: 'var(--accent)' }}
                 >
                     {labels[index] || campus.name.substring(0, 3).toUpperCase()}
@@ -267,7 +267,7 @@ function CampusCard({
                     >
                         <Trash2 size={14} />
                     </button>
-                    <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border"
+                    <span className="text-[12px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border"
                         style={{
                             background: campus.active ? 'var(--success-bg)' : 'var(--bg-wash)',
                             color: campus.active ? 'var(--success)' : 'var(--text-muted)',
@@ -279,18 +279,18 @@ function CampusCard({
             </div>
             
             <h3 className="font-bold text-lg mb-1" style={{ color: 'var(--text-primary)' }}>{campus.name}</h3>
-            <p className="text-xs mb-4 font-medium opacity-70 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-[13px] mb-4 font-medium opacity-70 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                 {campus.description || 'General university medical facility serving students and faculty.'}
             </p>
             <div className="flex items-center gap-1.5 mb-5 px-3 py-2 rounded-xl" style={{ background: 'var(--bg-wash)', border: '1px solid var(--border-light)' }}>
                 <MapPin size={13} style={{ color: 'var(--text-faint)' }} />
-                <span className="text-[11px] font-semibold" style={{ color: 'var(--text-secondary)' }}>{campus.location}</span>
+                <span className="text-[13px] font-semibold" style={{ color: 'var(--text-secondary)' }}>{campus.location}</span>
             </div>
 
             <div className="flex-1 space-y-3">
                 <div className="flex items-center justify-between px-1">
-                    <h4 className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: 'var(--text-faint)' }}>Assigned Clinics</h4>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>{clinics.length}</span>
+                    <h4 className="text-[12px] font-extrabold uppercase tracking-widest" style={{ color: 'var(--text-faint)' }}>Assigned Clinics</h4>
+                    <span className="text-[12px] font-bold px-2 py-0.5 rounded-lg" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>{clinics.length}</span>
                 </div>
                 <div className="space-y-2">
                     {clinics.length > 0 ? (
@@ -299,7 +299,7 @@ function CampusCard({
                                 style={{ background: 'var(--bg-wash)', border: '1px solid var(--border-light)' }}>
                                 <div className="flex items-center gap-2">
                                     <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--accent)' }} />
-                                    <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{c.name}</span>
+                                    <span className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>{c.name}</span>
                                 </div>
                                 <Building2 size={12} style={{ color: 'var(--text-faint)' }} />
                             </div>
@@ -307,7 +307,7 @@ function CampusCard({
                     ) : (
                         <div className="flex flex-col items-center justify-center py-6 rounded-xl border border-dashed" style={{ borderColor: 'var(--border)' }}>
                              <Building2 size={24} className="opacity-10 mb-2" />
-                             <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-faint)' }}>No Clinics Assigned</p>
+                             <p className="text-[12px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-faint)' }}>No Clinics Assigned</p>
                         </div>
                     )}
                 </div>
@@ -315,7 +315,7 @@ function CampusCard({
 
             <button 
                 onClick={() => onAddClinic(campus.id)}
-                className="mt-6 w-full py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all active:scale-95 border"
+                className="mt-6 w-full py-2.5 rounded-xl text-[12px] font-bold uppercase tracking-widest transition-all active:scale-95 border"
                 style={{ 
                     background: 'var(--card-bg)', 
                     color: 'var(--text-secondary)',
@@ -451,12 +451,12 @@ export default function Campuses() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>Campus & Clinics</h2>
-                    <p className="text-sm mt-1 font-medium opacity-70" style={{ color: 'var(--text-secondary)' }}>Manage physical locations and medical facilities.</p>
+                    <p className="text-[15px] mt-1 font-medium opacity-70" style={{ color: 'var(--text-secondary)' }}>Manage physical locations and medical facilities.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => { setEditCampus(null); setShowCampusForm(true); }}
-                        className="btn-cta flex items-center gap-2 text-xs font-medium text-white px-4 py-2.5 rounded-xl shadow-sm transition-all active:scale-95"
+                        className="btn-cta flex items-center gap-2 text-[13px] font-medium text-white px-4 py-2.5 rounded-xl shadow-sm transition-all active:scale-95"
                     >
                         <Plus size={14} /> New Campus
                     </button>
@@ -474,7 +474,7 @@ export default function Campuses() {
                         <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl" style={{ background: stat.color, opacity: 0.7 }} />
                         <div className="flex items-start justify-between relative z-10">
                             <div>
-                                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-faint)' }}>{stat.label}</p>
+                                <p className="text-[12px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-faint)' }}>{stat.label}</p>
                                 <p className="text-3xl font-bold tracking-tight mt-1.5" style={{ color: 'var(--text-primary)' }}>{stat.val}</p>
                             </div>
                             <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${stat.color}14` }}>
@@ -491,7 +491,7 @@ export default function Campuses() {
                 <div className="flex items-center gap-2 p-1.5 rounded-xl" style={{ background: 'var(--bg-wash)' }}>
                     <button 
                         onClick={() => setViewMode('grid')}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all"
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] font-medium transition-all"
                         style={{
                             background: viewMode === 'grid' ? 'var(--card-bg)' : 'transparent',
                             color: viewMode === 'grid' ? 'var(--accent)' : 'var(--text-muted)',
@@ -502,7 +502,7 @@ export default function Campuses() {
                     </button>
                     <button 
                         onClick={() => setViewMode('directory')}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all"
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] font-medium transition-all"
                         style={{
                             background: viewMode === 'directory' ? 'var(--card-bg)' : 'transparent',
                             color: viewMode === 'directory' ? 'var(--accent)' : 'var(--text-muted)',
@@ -520,7 +520,7 @@ export default function Campuses() {
                             <select
                                 value={campusFilter}
                                 onChange={(e) => setCampusFilter(e.target.value)}
-                                className="appearance-none rounded-xl px-4 py-2 pr-10 text-xs font-medium outline-none transition-colors"
+                                className="appearance-none rounded-xl px-4 py-2 pr-10 text-[13px] font-medium outline-none transition-colors"
                                 style={{ border: '1px solid var(--border)', background: 'var(--bg-wash)', color: 'var(--text-primary)' }}
                             >
                                 <option value="All">All Campuses</option>
@@ -553,17 +553,17 @@ export default function Campuses() {
                     <div className="col-span-1 md:col-span-2 lg:col-span-3 mt-4 flex items-center justify-between p-4 rounded-2xl"
                         style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
                         <div className="flex items-center gap-4 ml-auto">
-                            <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                            <span className="text-[12px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                                 Page {campusPage} of {Math.max(1, campusTotalPages)}
                             </span>
                             <div className="flex items-center gap-2">
                                 <button onClick={() => setCampusPage(p => Math.max(1, p - 1))} disabled={campusPage === 1}
-                                    className="px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider disabled:opacity-50 transition-colors"
+                                    className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest disabled:opacity-50 transition-colors"
                                     style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
                                     Previous
                                 </button>
                                 <button onClick={() => setCampusPage(p => Math.min(campusTotalPages, p + 1))} disabled={campusPage === campusTotalPages || campusTotalPages === 0}
-                                    className="px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider disabled:opacity-50 transition-colors"
+                                    className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest disabled:opacity-50 transition-colors"
                                     style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
                                     Next
                                 </button>
@@ -577,7 +577,7 @@ export default function Campuses() {
                         <thead>
                             <tr style={{ background: 'var(--bg-wash)', borderBottom: '1px solid var(--border)' }}>
                                 {['Clinic Name', 'Campus', 'Location', 'Contact', 'Actions'].map((h) => (
-                                    <th key={h} className="text-left text-[10px] font-semibold uppercase tracking-wider px-6 py-4" style={{ color: 'var(--text-muted)' }}>
+                                    <th key={h} className="text-left text-[10px] font-black uppercase tracking-widest px-6 py-4" style={{ color: 'var(--text-muted)' }}>
                                         {h}
                                     </th>
                                 ))}
@@ -586,7 +586,7 @@ export default function Campuses() {
                         <tbody>
                             {paginatedClinics.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="text-center py-12 text-sm italic" style={{ color: 'var(--text-muted)' }}>No clinics found matching current filters.</td>
+                                    <td colSpan={5} className="text-center py-12 text-[15px] italic" style={{ color: 'var(--text-muted)' }}>No clinics found matching current filters.</td>
                                 </tr>
                             ) : (
                                 paginatedClinics.map((cl) => {
@@ -598,16 +598,16 @@ export default function Campuses() {
                                                     <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>
                                                         <Building2 size={16} />
                                                     </div>
-                                                    <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{cl.name}</span>
+                                                    <span className="text-[15px] font-medium" style={{ color: 'var(--text-primary)' }}>{cl.name}</span>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{campus?.name || 'N/A'}</span>
+                                                <span className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>{campus?.name || 'N/A'}</span>
                                             </td>
-                                            <td className="px-6 py-4 text-xs font-normal" style={{ color: 'var(--text-secondary)' }}>
+                                            <td className="px-6 py-4 text-[13px] font-normal" style={{ color: 'var(--text-secondary)' }}>
                                                 {campus?.location || 'N/A'}
                                             </td>
-                                            <td className="px-6 py-4 text-xs" style={{ color: 'var(--text-muted)' }}>
+                                            <td className="px-6 py-4 text-[13px]" style={{ color: 'var(--text-muted)' }}>
                                                 {cl.contact ? String(cl.contact).padStart(11, '0') : 'N/A'}
                                             </td>
                                             <td className="px-6 py-4">
@@ -637,17 +637,17 @@ export default function Campuses() {
                     {/* Clinic Pagination */}
                     <div className="px-6 py-4 flex items-center justify-between" style={{ background: 'var(--bg-wash)', borderTop: '1px solid var(--border)' }}>
                         <div className="flex items-center gap-4 ml-auto">
-                            <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                            <span className="text-[12px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                                 Page {clinicPage} of {Math.max(1, clinicTotalPages)}
                             </span>
                             <div className="flex items-center gap-2">
                                 <button onClick={() => setClinicPage(p => Math.max(1, p - 1))} disabled={clinicPage === 1}
-                                    className="px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider disabled:opacity-50 transition-colors"
+                                    className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest disabled:opacity-50 transition-colors"
                                     style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
                                     Previous
                                 </button>
                                 <button onClick={() => setClinicPage(p => Math.min(clinicTotalPages, p + 1))} disabled={clinicPage === clinicTotalPages || clinicTotalPages === 0}
-                                    className="px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider disabled:opacity-50 transition-colors"
+                                    className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest disabled:opacity-50 transition-colors"
                                     style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
                                     Next
                                 </button>
@@ -690,3 +690,4 @@ export default function Campuses() {
         </div>
     );
 }
+

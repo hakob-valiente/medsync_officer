@@ -41,14 +41,14 @@ export default function FAQs() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>Student Wellness Center FAQs</h2>
-          <p className="text-sm mt-1 font-medium opacity-70" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-[15px] mt-1 font-medium opacity-70" style={{ color: 'var(--text-secondary)' }}>
             Find helpful information about using the clinic's digital services.
           </p>
         </div>
         <div className="flex items-center gap-2 px-4 py-2 rounded-xl"
              style={{ background: 'var(--accent-light)', border: '1px solid rgba(72, 187, 238, 0.15)' }}>
           <HelpCircle size={16} style={{ color: 'var(--accent)' }} />
-          <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--accent-deep)' }}>Student Support</span>
+          <span className="text-[13px] font-semibold uppercase tracking-wider" style={{ color: 'var(--accent-deep)' }}>Student Support</span>
         </div>
       </div>
 
@@ -71,7 +71,7 @@ export default function FAQs() {
                   onClick={() => toggleFaq(faq.id)}
                   style={{ background: isOpen ? 'var(--bg-wash)' : 'transparent' }}
                 >
-                  <span className="font-semibold text-sm pr-4" style={{ color: isOpen ? 'var(--accent)' : 'var(--text-primary)' }}>
+                  <span className="font-semibold text-[15px] pr-4" style={{ color: isOpen ? 'var(--accent)' : 'var(--text-primary)' }}>
                     {faq.question}
                   </span>
                   <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors" 
@@ -87,7 +87,7 @@ export default function FAQs() {
                 <div 
                   className={`overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}
                 >
-                  <div className="p-5 pt-1 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                  <div className="p-5 pt-1 text-[15px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                     <div className="pt-4" style={{ borderTop: '1px solid var(--border-light)' }}>
                       {faq.answer}
                     </div>
@@ -104,27 +104,27 @@ export default function FAQs() {
               <Info size={24} style={{ color: 'var(--accent)' }} />
             </div>
             <h3 className="font-bold text-lg mb-2" style={{ color: 'var(--text-primary)' }}>Need more help?</h3>
-            <p className="text-sm mb-4 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-[15px] mb-4 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
               If you have further questions or encounter any system issues, please reach out to the technical support team.
             </p>
-            <button className="w-full py-2.5 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2"
+            <button className="w-full py-2.5 rounded-lg text-[15px] font-semibold transition-all flex items-center justify-center gap-2"
                     style={{ background: 'var(--accent)', color: 'white', boxShadow: '0 4px 12px rgba(59, 172, 237, 0.3)' }}>
               <MessageSquare size={16} /> Contact Support
             </button>
           </div>
           
           <div className="rounded-xl p-5 fade-in" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
-             <h3 className="font-semibold text-sm mb-3 uppercase tracking-wider" style={{ color: 'var(--text-primary)' }}>System Information</h3>
+             <h3 className="font-semibold text-[15px] mb-3 uppercase tracking-wider" style={{ color: 'var(--text-primary)' }}>System Information</h3>
              <div className="space-y-2">
-                <div className="flex justify-between text-xs">
+                <div className="flex justify-between text-[13px]">
                    <span style={{ color: 'var(--text-muted)' }}>Version</span>
                    <span className="font-medium" style={{ color: 'var(--text-primary)' }}>v2.4.1</span>
                 </div>
-                <div className="flex justify-between text-xs">
+                <div className="flex justify-between text-[13px]">
                    <span style={{ color: 'var(--text-muted)' }}>Last Updated</span>
                    <span className="font-medium" style={{ color: 'var(--text-primary)' }}>April 2026</span>
                 </div>
-                <div className="flex justify-between text-xs">
+                <div className="flex justify-between text-[13px]">
                    <span style={{ color: 'var(--text-muted)' }}>License</span>
                    <span className="font-medium" style={{ color: 'var(--text-primary)' }}>PLV MedSync Internal</span>
                 </div>
@@ -135,3 +135,4 @@ export default function FAQs() {
     </div>
   );
 }
+

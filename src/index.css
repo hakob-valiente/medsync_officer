@@ -1,15 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
-/* ═══════════════════════════════════════════════════════════════
-   MEDSYNC — Professional Clinic Design System
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   MEDSYNC â€” Professional Clinic Design System
    Core Palette: Medium-Deep Blue-Gray, Vibrant Azure & Emerald
    Typography: Poppins (Headings) & Inter (Body)
-   ═══════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 @layer base {
   :root {
-    /* ── Primary Palette: Vibrant Emerald ── */
+    font-size: 18px;
+    /* â”€â”€ Primary Palette: Vibrant Emerald â”€â”€ */
     --accent: #059669;
     /* Emerald 600 */
     --accent-hover: #047857;
@@ -21,7 +22,7 @@
     --accent-glow: rgba(5, 150, 105, 0.2);
     --accent-subtle: rgba(5, 150, 105, 0.08);
 
-    /* ── Supplemental Accent: Emerald/Teal ── */
+    /* â”€â”€ Supplemental Accent: Emerald/Teal â”€â”€ */
     --teal-primary: #0d9488;
     /* Teal 600 */
     --teal-light: #f0fdfa;
@@ -29,7 +30,7 @@
     --teal-text: #0f766e;
     /* Teal 700 */
 
-    /* ── Foundation Backgrounds ── */
+    /* â”€â”€ Foundation Backgrounds â”€â”€ */
     --bg: #f8fafc;
     /* Slate 50 - Very light for clean dashboard */
     --bg-subtle: #ffffff;
@@ -37,7 +38,7 @@
     --bg-wash: #f1f5f9;
     /* Slate 100 - subtle contrast for inner elements */
 
-    /* ── Sidebar: Medium-Deep Blue-Gray tone ── */
+    /* â”€â”€ Sidebar: Medium-Deep Blue-Gray tone â”€â”€ */
     --sidebar-bg: #1e293b;
     /* Slate 800 - balanced, not too light/dark */
     --sidebar-surface: #334155;
@@ -51,11 +52,11 @@
     /* White */
     --sidebar-border: #334155;
 
-    /* ── Cards & Surfaces ── */
+    /* â”€â”€ Cards & Surfaces â”€â”€ */
     --card-bg: #ffffff;
     --card-hover: #fdfdfe;
 
-    /* ── Typography (Clearer Hierarchy & Contrast) ── */
+    /* â”€â”€ Typography (Clearer Hierarchy & Contrast) â”€â”€ */
     --text-primary: #0f172a;
     /* Slate 900 */
     --text-secondary: #334155;
@@ -65,14 +66,14 @@
     --text-faint: #64748b;
     /* Slate 500 */
 
-    /* ── Borders ── */
+    /* â”€â”€ Borders â”€â”€ */
     --border: #cbd5e1;
     /* Slate 300 */
     --border-light: #e2e8f0;
     /* Slate 200 */
     --border-focus: var(--accent);
 
-    /* ── Semantic Colors (High Readability) ── */
+    /* â”€â”€ Semantic Colors (High Readability) â”€â”€ */
     --success: #059669;
     /* Emerald 600 */
     --success-bg: #d1fae5;
@@ -86,7 +87,7 @@
     --danger-bg: #ffe4e6;
     --danger-text: #881337;
 
-    /* ── Shadows: Soft & Elevated ── */
+    /* â”€â”€ Shadows: Soft & Elevated â”€â”€ */
     --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
@@ -97,22 +98,22 @@
     --shadow-danger: 0 4px 14px rgba(225, 29, 72, 0.2);
     --shadow-accent: 0 4px 14px rgba(5, 150, 105, 0.25);
 
-    /* ── Radii ── */
+    /* â”€â”€ Radii â”€â”€ */
     --radius-sm: 6px;
     --radius-md: 8px;
     --radius-lg: 12px;
     --radius-xl: 16px;
     --radius-2xl: 20px;
 
-    /* ── Transitions ── */
+    /* â”€â”€ Transitions â”€â”€ */
     --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
     --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
-    /* ── Button Gradients ── */
+    /* â”€â”€ Button Gradients â”€â”€ */
     --cta-gradient: linear-gradient(135deg, #059669 0%, #064e3b 100%);
     --cta-hover-gradient: linear-gradient(135deg, #047857 0%, #064e3b 100%);
 
-    /* ── Sidebar Redesign Tokens (light) ── */
+    /* â”€â”€ Sidebar Redesign Tokens (light) â”€â”€ */
     --sidebar-bg: #F8F9FB;
     --sidebar-border: #E4E8EE;
     --sidebar-divider: #E4E8EE;
@@ -130,9 +131,9 @@
     --logout-hover-bg: #FEF2F2;
   }
 
-  /* ═══════════════════════════════════════════
+  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
      NIGHT MODE 
-     ═══════════════════════════════════════════ */
+     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   [data-theme="dark"] {
     --accent: #10b981;
     /* Emerald 500 - More premium in dark mode */
@@ -235,9 +236,9 @@
   }
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    SCROLLBAR
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -256,9 +257,9 @@
   background: var(--text-muted);
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    ANIMATIONS
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -303,9 +304,9 @@
   }
 }
 
-/* ═══════════════════════════════════════════
-   SIDEBAR NAV — Legacy + New .nav-pill classes
-   ═══════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   SIDEBAR NAV â€” Legacy + New .nav-pill classes
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 /* Legacy (kept for backward compat) */
 .sidebar-nav-item {
@@ -343,9 +344,9 @@
   background: var(--nav-active-bg);
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    BADGES
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .badge-appointment {
   background: var(--danger-bg);
   color: var(--danger-text);
@@ -395,9 +396,9 @@
   color: var(--text-muted);
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    KPI VALUE CARDS
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .kpi-card {
   position: relative;
   overflow: hidden;
@@ -440,9 +441,9 @@
   margin-top: 6px;
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    MODAL (GLASS)
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .modal-overlay {
   background: rgba(15, 23, 42, 0.4);
   backdrop-filter: blur(8px);
@@ -450,9 +451,9 @@
   animation: fadeIn 0.2s ease-out;
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    TABLES
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 tr.table-row {
   transition: background-color 0.2s ease;
 }
@@ -481,9 +482,9 @@ tr.table-row:hover td {
   color: var(--text-secondary);
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    HEADER
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .top-header {
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(12px);
@@ -495,9 +496,9 @@ tr.table-row:hover td {
   background: rgba(15, 23, 42, 0.9);
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    INPUTS & FORMS
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 input,
 select,
 textarea {
@@ -530,10 +531,10 @@ textarea::placeholder {
   color: var(--text-secondary);
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    MEDICAL REQUESTS SECTION LAYOUT
    (Scoped so typography tweaks stay local)
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .medical-requests {
   display: flex;
   flex-direction: column;
@@ -694,10 +695,10 @@ textarea::placeholder {
   }
 }
 
-/* ═════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    APPOINTMENTS FILTER BAR
    (Search, campus, date range)
-   ═════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .appointments-filters {
   display: flex;
   flex-wrap: wrap;
@@ -744,9 +745,9 @@ textarea::placeholder {
   }
 }
 
-/* ═════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    DASHBOARD CALENDAR WIDGET
-   ═════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .calendar-widget-card {
   border-radius: var(--radius-xl);
   border: 1px solid var(--border);
@@ -798,9 +799,9 @@ textarea::placeholder {
   }
 }
 
-/* ═════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    BUTTONS
-   ═════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 button {
   cursor: pointer;
   transition: all 0.2s var(--ease-out);
@@ -850,9 +851,9 @@ button:disabled {
   border-color: var(--text-muted);
 }
 
-/* ═════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    MISCELLANEOUS
-   ═════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .page-content {
   animation: fadeIn 0.4s var(--ease-out);
 }
@@ -882,9 +883,9 @@ button:disabled {
   border-color: var(--border);
 }
 
-/* ═════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    APPOINTMENTS MODERN REDESIGN
-   ═════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .appointment-card {
   background: var(--card-bg);
   border: 1px solid var(--border-light);
@@ -1067,10 +1068,10 @@ button:disabled {
   transform: scale(1.1);
 }
 
-/* ╔════════════════════════════════════════════════════════════════╗
-   ║  MEDSYNC DESIGN COHESION SYSTEM  v3.0                        ║
-   ║  Accent: light #3BACED · dark #5AC8F5                        ║
-   ╚════════════════════════════════════════════════════════════════╝ */
+/* â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
+   â•‘  MEDSYNC DESIGN COHESION SYSTEM  v3.0                        â•‘
+   â•‘  Accent: light #3BACED Â· dark #5AC8F5                        â•‘
+   â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 /* 1. Accent override to sidebar-matched azure */
 :root {
@@ -1085,9 +1086,9 @@ button:disabled {
   --card-border: #E4E8EE;
   --card-radius: 8px;
   --card-radius-lg: 12px;
-  --type-primary: 13px;
-  --type-label: 10px;
-  --type-caption: 9px;
+  --type-primary: 14px;
+  --type-label: 11px;
+  --type-caption: 10px;
 }
 
 [data-theme="dark"] {
@@ -1186,7 +1187,7 @@ button:disabled {
   background: var(--accent-subtle);
 }
 
-/* Active row — 3px left indicator bar */
+/* Active row â€” 3px left indicator bar */
 .ds-table tbody tr.ds-row--active td {
   background: var(--accent-light);
 }
@@ -1251,7 +1252,7 @@ button:disabled {
 
 .ds-modal-title {
   font-family: 'Inter', sans-serif;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
   line-height: 1.3;
@@ -1460,7 +1461,7 @@ button:disabled {
 /* 8. Page header */
 .ds-page-title {
   font-family: 'Inter', sans-serif;
-  font-size: 22px;
+  font-size: 23px;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.01em;
@@ -1469,7 +1470,7 @@ button:disabled {
 
 .ds-page-subtitle {
   font-family: 'Inter', sans-serif;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 400;
   color: var(--nav-cat, #6C757D);
   margin-top: 2px;
@@ -1581,9 +1582,9 @@ button:disabled {
   color: var(--accent);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   LOGIN PAGE — Premium OTP Authentication
-   ═══════════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   LOGIN PAGE â€” Premium OTP Authentication
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .login-page {
   min-height: 100vh;
@@ -1595,7 +1596,7 @@ button:disabled {
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #0f172a 100%);
 }
 
-/* ── Animated background orbs ── */
+/* â”€â”€ Animated background orbs â”€â”€ */
 .login-bg-pattern {
   position: absolute;
   inset: 0;
@@ -1647,7 +1648,7 @@ button:disabled {
   75% { transform: translate(30px, 20px) scale(1.05); }
 }
 
-/* ── Login container (card) ── */
+/* â”€â”€ Login container (card) â”€â”€ */
 .login-container {
   position: relative;
   z-index: 10;
@@ -1673,7 +1674,7 @@ button:disabled {
   }
 }
 
-/* ── Left brand panel ── */
+/* â”€â”€ Left brand panel â”€â”€ */
 .login-brand-panel {
   width: 380px;
   flex-shrink: 0;
@@ -1772,7 +1773,7 @@ button:disabled {
   flex-shrink: 0;
 }
 
-/* ── Right form panel ── */
+/* â”€â”€ Right form panel â”€â”€ */
 .login-form-panel {
   flex: 1;
   display: flex;
@@ -1788,7 +1789,7 @@ button:disabled {
   margin: 0 auto;
 }
 
-/* ── Step indicator ── */
+/* â”€â”€ Step indicator â”€â”€ */
 .login-steps {
   display: flex;
   align-items: center;
@@ -1848,7 +1849,7 @@ button:disabled {
   background: #e2e8f0;
 }
 
-/* ── Form header ── */
+/* â”€â”€ Form header â”€â”€ */
 .login-form-header {
   margin-bottom: 28px;
 }
@@ -1874,7 +1875,7 @@ button:disabled {
   font-weight: 600;
 }
 
-/* ── Input group ── */
+/* â”€â”€ Input group â”€â”€ */
 .login-input-group {
   margin-bottom: 20px;
 }
@@ -1935,7 +1936,7 @@ button:disabled {
   font-weight: 400;
 }
 
-/* ── OTP inputs ── */
+/* â”€â”€ OTP inputs â”€â”€ */
 .login-otp-container {
   margin-bottom: 24px;
 }
@@ -1986,7 +1987,7 @@ button:disabled {
   user-select: none;
 }
 
-/* ── Error & success messages ── */
+/* â”€â”€ Error & success messages â”€â”€ */
 .login-error {
   display: flex;
   align-items: center;
@@ -2015,7 +2016,7 @@ button:disabled {
   margin-bottom: 16px;
 }
 
-/* ── Primary button ── */
+/* â”€â”€ Primary button â”€â”€ */
 .login-btn {
   display: flex;
   align-items: center;
@@ -2061,7 +2062,7 @@ button:disabled {
   to { transform: rotate(360deg); }
 }
 
-/* ── OTP footer (resend/change) ── */
+/* â”€â”€ OTP footer (resend/change) â”€â”€ */
 .login-otp-footer {
   display: flex;
   align-items: center;
@@ -2096,7 +2097,7 @@ button:disabled {
   font-size: 0.9rem;
 }
 
-/* ── Footer text ── */
+/* â”€â”€ Footer text â”€â”€ */
 .login-footer-text {
   text-align: center;
   font-size: 0.7rem;
@@ -2109,7 +2110,7 @@ button:disabled {
   animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* ── Responsive ── */
+/* â”€â”€ Responsive â”€â”€ */
 @media (max-width: 768px) {
   .login-container {
     flex-direction: column;
@@ -2142,5 +2143,407 @@ button:disabled {
     width: 36px;
     height: 46px;
     font-size: 1.1rem;
+  }
+}
+
+/* -------------------------------------------------------------------
+   MOBILE-ONLY UI IMPROVEMENTS (max-width: 767px)
+   All desktop styles are completely untouched — rules inside @media
+   ------------------------------------------------------------------- */
+@media (max-width: 767px) {
+
+  /* --- Layout & Main Content --- */
+  .mobile-main-content {
+    padding: 1rem !important;
+    padding-top: 0.5rem !important;
+  }
+
+  /* Sticky glass header */
+  .mobile-header {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    background: rgba(234, 237, 241, 0.90) !important;
+    border-bottom: 1px solid var(--card-border);
+  }
+
+  [data-theme="dark"] .mobile-header {
+    background: rgba(10, 25, 41, 0.92) !important;
+  }
+
+  /* Hamburger — force minimum 44x44 touch area */
+  .mobile-hamburger {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+
+  /* Sidebar nav items — larger touch targets */
+  aside .nav-pill {
+    padding-top: 0.65rem !important;
+    padding-bottom: 0.65rem !important;
+    min-height: 44px !important;
+    gap: 0.85rem !important;
+  }
+
+  /* --- Global Typography --- */
+  .ds-page-title { font-size: 18px !important; }
+  .ds-page-subtitle { font-size: 12px !important; }
+
+  /* --- KPI Cards --- */
+  .kpi-card { padding: 14px !important; }
+  .kpi-card .kpi-value { font-size: 1.9rem !important; }
+  .kpi-card .kpi-label { font-size: 0.6rem !important; }
+
+  /* --- Design System Cards --- */
+  .ds-card { border-radius: 12px !important; }
+  .ds-card-header { padding: 10px 14px !important; }
+  .ds-card-body { padding: 12px 14px !important; }
+
+  /* --- Tables --- */
+  .ds-table thead th,
+  .medical-requests-card-table thead th {
+    font-size: 9px !important;
+    padding: 8px 10px !important;
+    letter-spacing: 0.10em !important;
+  }
+
+  .ds-table tbody td,
+  .medical-requests-card-table tbody td {
+    font-size: 12px !important;
+    padding: 10px !important;
+  }
+
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+  }
+
+  /* --- Appointment Cards --- */
+  .appointment-card { padding: 0.75rem !important; border-radius: 20px !important; gap: 0.5rem !important; }
+  .appointment-card button { min-height: 42px !important; }
+
+  /* --- Modals become Bottom Sheets --- */
+  .ds-modal {
+    border-radius: 28px 28px 0 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: auto !important;
+    margin: 0 !important;
+    box-shadow: 0 -6px 40px rgba(0, 0, 0, 0.22) !important;
+    animation: mobileSheetUp 0.32s cubic-bezier(0.34, 1.2, 0.64, 1) forwards !important;
+  }
+
+  .ds-modal::before {
+    content: '';
+    display: block;
+    width: 38px;
+    height: 4px;
+    background: var(--card-border);
+    border-radius: 4px;
+    margin: 10px auto 4px;
+  }
+
+  @keyframes mobileSheetUp {
+    from { transform: translateY(100%); opacity: 0.7; }
+    to   { transform: translateY(0);    opacity: 1;   }
+  }
+
+  .mobile-bottom-sheet {
+    animation: mobileSheetUp 0.35s cubic-bezier(0.34, 1.2, 0.64, 1) forwards;
+  }
+
+  /* --- Filter Bars — stack vertically --- */
+  .appointments-filters,
+  .medical-requests-toolbar {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+    padding: 0.875rem !important;
+    align-items: stretch !important;
+  }
+
+  .appointments-filters select,
+  .appointments-filters input,
+  .medical-requests-toolbar select,
+  .medical-requests-toolbar input {
+    width: 100% !important;
+    min-height: 42px !important;
+  }
+
+  /* --- Status Badges --- */
+  .ds-status { font-size: 9px !important; padding: 2px 6px !important; }
+  .status-badge-modern { font-size: 9px !important; padding: 0.18rem 0.45rem !important; }
+
+  /* --- Success Toast — pill style --- */
+  .fixed.top-8 { top: 0.75rem !important; }
+  .fixed.top-8 > div {
+    border-radius: 99px !important;
+    padding: 0.45rem 1.1rem !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18) !important;
+  }
+
+  /* --- Buttons — no tap delay, min touch target --- */
+  button { touch-action: manipulation; }
+  .action-icon-button { min-width: 40px !important; min-height: 40px !important; }
+
+  /* --- Inputs — prevent iOS zoom on focus --- */
+  input, select, textarea {
+    font-size: 16px !important;
+    min-height: 40px;
+  }
+
+  /* --- Pagination — stack vertically --- */
+  .mt-auto.px-2.py-6,
+  .mt-8.px-2.py-6 {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+    align-items: flex-start !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* --- Hide scrollbars on mobile --- */
+  ::-webkit-scrollbar { display: none; }
+  * { scrollbar-width: none; }
+}
+
+/* -------------------------------------------------------------------
+   MOBILE TABLE ? CARD TRANSFORMATION SYSTEM
+   Wrapping any table container with class="mobile-card-table"
+   automatically converts rows to cards on screens < 768px.
+   Desktop is completely untouched.
+   ------------------------------------------------------------------- */
+
+@media (max-width: 767px) {
+
+  /* -- Hide the table container's overflow scroll shell -- */
+  .mobile-card-table .overflow-x-auto,
+  .mobile-card-table > .overflow-x-auto {
+    overflow: visible !important;
+    overflow-x: visible !important;
+  }
+
+  /* -- Make table block-level -- */
+  .mobile-card-table table {
+    display: block;
+    border: none;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  /* -- Hide the entire table header -- */
+  .mobile-card-table thead {
+    display: none !important;
+  }
+
+  /* -- tbody becomes a flex column of cards -- */
+  .mobile-card-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    background: transparent !important;
+  }
+
+  /* -- Each row becomes an independent card -- */
+  .mobile-card-table tbody tr {
+    display: block;
+    background: var(--card-bg) !important;
+    border: 1px solid var(--card-border, var(--border-light)) !important;
+    border-radius: 14px !important;
+    padding: 0 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+    overflow: hidden;
+    transition: box-shadow 0.2s ease;
+  }
+
+  .mobile-card-table tbody tr:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.10) !important;
+  }
+
+  /* -- Each cell becomes a labeled row inside the card -- */
+  .mobile-card-table tbody td {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    padding: 8px 14px !important;
+    border-bottom: 1px solid var(--border-light) !important;
+    min-height: unset !important;
+    background: transparent !important;
+    font-size: 13px !important;
+  }
+
+  /* -- Last cell: no bottom border — act as card footer -- */
+  .mobile-card-table tbody td:last-child {
+    border-bottom: none !important;
+    padding: 10px 14px !important;
+    justify-content: flex-end !important;
+    background: var(--bg-wash) !important;
+  }
+
+  /* -- First cell: card "header" zone — accent left border -- */
+  .mobile-card-table tbody td:first-child {
+    border-left: 3px solid var(--accent) !important;
+    border-radius: 0 !important;
+    padding: 10px 14px !important;
+    font-weight: 600 !important;
+    background: var(--bg-wash) !important;
+  }
+
+  /* -- Label injected via data-label attribute -- */
+  .mobile-card-table tbody td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-family: 'Inter', sans-serif;
+    font-size: 8px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--nav-cat, #6C757D);
+    margin-bottom: 0px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    min-width: 60px;
+  }
+
+  /* -- Cells with data-label wrap their content -- */
+  .mobile-card-table tbody td[data-label] {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    text-align: right !important;
+    gap: 12px !important;
+  }
+
+  /* -- Empty state row (colSpan) — full width centered -- */
+  .mobile-card-table tbody tr td[colspan],
+  .mobile-card-table tbody tr td[colSpan] {
+    border-left: none !important;
+    background: transparent !important;
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
+    border-radius: 14px !important;
+    border-bottom: none !important;
+    flex-direction: column !important;
+  }
+
+  /* -- Appointments: hide horizontal-scroll list tables on mobile -- */
+  /* Show the grid view automatically — the list view tables are hidden */
+  .appt-table-list-wrapper {
+    display: none !important;
+  }
+
+  .appt-grid-mobile-always {
+    display: block !important;
+  }
+
+  .patient-table-wrapper {
+    display: none !important;
+  }
+
+  .patient-grid-mobile-always {
+    display: block !important;
+  }
+
+  .patient-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-light);
+    border-radius: 16px;
+    padding: 12px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+  }
+
+  .patient-card:hover {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+
+.patient-grid-mobile-always {
+  display: none;
+}
+
+.appt-grid-mobile-always {
+  display: none;
+}
+
+.patient-table-wrapper {
+  display: block;
+}
+
+.appt-table-list-wrapper {
+  display: block;
+}
+
+/* --- Layout Refinements for Mobile Bottom Nav --- */
+@media (max-width: 767px) {
+  .page-content {
+    padding-bottom: 80px !important;
+  }
+  .mobile-header {
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+  }
+}
+
+/* â”€â”€ Mobile UI Optimization â”€â”€ */
+@media (max-width: 640px) {
+  /* Search bars are too big on mobile */
+  .appointments-filters-search input,
+  .appointments-filters-search select,
+  .medical-requests-toolbar-search input,
+  .medical-requests-toolbar-search select,
+  .relative input[placeholder*="Search"],
+  .relative select[placeholder*="Search"],
+  .relative input[placeholder*="search"],
+  .relative select[placeholder*="search"],
+  select.rounded-xl.px-4.py-2.text-sm {
+    padding-top: 0.3rem !important;
+    padding-bottom: 0.3rem !important;
+    height: 30px !important;
+    min-height: 0 !important;
+    font-size: 0.7rem !important;
+  }
+
+  /* Calendar cell text still too big */
+  .fc-event-time {
+    font-size: 0.45rem !important;
+    font-weight: 900 !important;
+  }
+  
+  .fc-event-title {
+    font-size: 0.45rem !important;
+    font-weight: 500 !important;
+    line-height: 1 !important;
+  }
+
+  .appointments-filters, 
+  .medical-requests-toolbar,
+  .rounded-2xl.p-4.flex.flex-col.md\:flex-row {
+    padding: 0.5rem !important;
+    gap: 0.5rem !important;
+  }
+
+  /* Calendar text scaling */
+  .fc-toolbar-title {
+    font-size: 0.85rem !important;
+  }
+
+  .fc .fc-button {
+    padding: 0.25rem 0.4rem !important;
+    font-size: 0.65rem !important;
+  }
+
+  .fc-header-toolbar {
+    margin-bottom: 0.75rem !important;
   }
 }

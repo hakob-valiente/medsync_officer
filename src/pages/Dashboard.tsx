@@ -3,9 +3,6 @@ import {
     Users,
     X, ExternalLink, Info, Activity, Clock, AlertTriangle
 } from 'lucide-react';
-import {
-    PieChart, Pie, Cell, Tooltip, ResponsiveContainer
-} from 'recharts';
 import { useStore } from '../hooks/useStore';
 import { CalendarWidget } from '../components/CalendarWidget';
 import { useEffect } from 'react';
@@ -75,7 +72,7 @@ function AdvisoryModal({ advisory, onClose }: { advisory: HealthAdvisory; onClos
                 <div className="flex items-start justify-between p-6" style={{ borderBottom: '1px solid var(--border)' }}>
                     <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                            <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider ${advisory.riskLevel === 'HIGH' ? 'text-red-600' :
+                            <span className={`text-[13px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider ${advisory.riskLevel === 'HIGH' ? 'text-red-600' :
                                     advisory.riskLevel === 'MEDIUM' ? 'text-orange-600' : 'text-blue-600'
                                 }`}
                                 style={{
@@ -87,7 +84,7 @@ function AdvisoryModal({ advisory, onClose }: { advisory: HealthAdvisory; onClos
                             >
                                 AI {advisory.riskLevel} Priority
                             </span>
-                            <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider"
+                            <span className="text-[13px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider"
                                 style={{ background: 'var(--bg-wash)', color: 'var(--text-muted)' }}
                             >
                                 {advisory.category}
@@ -112,20 +109,20 @@ function AdvisoryModal({ advisory, onClose }: { advisory: HealthAdvisory; onClos
                         borderLeft: `4px solid ${advisory.riskLevel === 'HIGH' ? 'var(--danger)' :
                             advisory.riskLevel === 'MEDIUM' ? 'var(--warning)' : 'var(--accent)'}`,
                     }}>
-                        <p className="text-sm leading-relaxed font-medium" style={{ color: 'var(--text-primary)' }}>{advisory.summary}</p>
+                        <p className="text-[15px] leading-relaxed font-medium" style={{ color: 'var(--text-primary)' }}>{advisory.summary}</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {advisory.healthConcerns.length > 0 && (
                             <div>
-                                <h3 className="font-semibold text-sm uppercase tracking-wider mb-3 flex items-center gap-2"
+                                <h3 className="font-semibold text-[15px] uppercase tracking-wider mb-3 flex items-center gap-2"
                                     style={{ color: 'var(--text-primary)' }}>
                                     <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--danger)' }} />
                                     Key Concerns
                                 </h3>
                                 <ul className="space-y-2">
                                     {advisory.healthConcerns.map((rec, i) => (
-                                        <li key={i} className="flex items-start gap-2 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                                        <li key={i} className="flex items-start gap-2 text-[15px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                                             • {rec}
                                         </li>
                                     ))}
@@ -135,14 +132,14 @@ function AdvisoryModal({ advisory, onClose }: { advisory: HealthAdvisory; onClos
 
                         {advisory.preventiveActions.length > 0 && (
                             <div>
-                                <h3 className="font-semibold text-sm uppercase tracking-wider mb-3 flex items-center gap-2"
+                                <h3 className="font-semibold text-[15px] uppercase tracking-wider mb-3 flex items-center gap-2"
                                     style={{ color: 'var(--text-primary)' }}>
                                     <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--success)' }} />
                                     Preventive Actions
                                 </h3>
                                 <ul className="space-y-2">
                                     {advisory.preventiveActions.map((rec, i) => (
-                                        <li key={i} className="flex items-start gap-2 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                                        <li key={i} className="flex items-start gap-2 text-[15px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                                             • {rec}
                                         </li>
                                     ))}
@@ -152,7 +149,7 @@ function AdvisoryModal({ advisory, onClose }: { advisory: HealthAdvisory; onClos
                     </div>
 
                     {advisory.sourceUrl && (
-                        <div className="pt-4 flex items-center justify-between text-xs" style={{ borderTop: '1px solid var(--border-light)', color: 'var(--text-muted)' }}>
+                        <div className="pt-4 flex items-center justify-between text-[13px]" style={{ borderTop: '1px solid var(--border-light)', color: 'var(--text-muted)' }}>
                             <span className="font-medium">Published: {new Date(advisory.publishedAt).toLocaleDateString()}</span>
                             <a
                                 href={advisory.sourceUrl}
@@ -204,12 +201,7 @@ export default function Dashboard() {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [showAllNews, setShowAllNews] = useState(false);
 
-    const requestVolumeData = [
-        { name: 'Appointment', value: state.appointments.length, color: '#E25C5C' },
-        { name: 'Medicine Requests', value: state.medicineRequests.length, color: '#E5A832' },
-        { name: 'Med Cert Requests', value: state.medicalCertRequests.length, color: '#48BBEE' },
-        { name: 'General Inquiry', value: state.inquiries.length, color: '#8896AA' },
-    ];
+
 
     useEffect(() => {
         const loadNews = async () => {
@@ -240,7 +232,7 @@ export default function Dashboard() {
                     Dashboard Overview
                 </h2>
                 <p className="text-sm mt-0.5 font-medium opacity-70" style={{ color: 'var(--text-secondary)' }}>
-                    Welcome back, Admin. Here's your health network snapshot.
+                    Welcome back, Officer. Here's your health network snapshot.
                 </p>
             </div>
 
@@ -274,7 +266,7 @@ export default function Dashboard() {
                             setAdvisories(news);
                             setIsRefreshing(false);
                         }}
-                        className="text-[10px] font-semibold uppercase tracking-wider hover:underline disabled:opacity-50"
+                        className="text-[11px] font-semibold uppercase tracking-wider hover:underline disabled:opacity-50"
                         style={{ color: 'var(--accent)' }}
                         disabled={isRefreshing}
                     >
@@ -308,7 +300,7 @@ export default function Dashboard() {
                                 }}
                             >
                                 <div className="flex items-start justify-between mb-3 relative z-10">
-                                    <div className="px-2.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider"
+                                    <div className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider"
                                         style={{
                                             background: adj.riskLevel === 'HIGH' ? 'var(--danger-bg)' :
                                                 adj.riskLevel === 'MEDIUM' ? 'var(--warning-bg)' : 'var(--accent-light)',
@@ -318,25 +310,25 @@ export default function Dashboard() {
                                     >
                                         {adj.riskLevel} Risk
                                     </div>
-                                    <div className="text-[9px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-faint)' }}>
+                                    <div className="text-[11px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-faint)' }}>
                                         {adj.category}
                                     </div>
                                 </div>
 
-                                <h4 className="font-semibold text-sm mb-2 line-clamp-1 leading-snug transition-colors relative z-10"
+                                <h4 className="font-semibold text-[15px] mb-2 line-clamp-1 leading-snug transition-colors relative z-10"
                                     style={{ color: 'var(--text-primary)' }}>
                                     {adj.title}
                                 </h4>
 
-                                <p className="text-xs line-clamp-2 leading-relaxed mb-4 flex-1 relative z-10" style={{ color: 'var(--text-muted)' }}>
+                                <p className="text-[13px] line-clamp-2 leading-relaxed mb-4 flex-1 relative z-10" style={{ color: 'var(--text-muted)' }}>
                                     {adj.oneSentenceSummary || adj.summary.replace('⚠️', '')}
                                 </p>
 
                                 <div className="flex items-center justify-between pt-3 relative z-10" style={{ borderTop: '1px solid var(--border-light)' }}>
-                                    <span className="text-[10px] font-semibold uppercase tracking-wider group-hover:translate-x-0.5 transition-transform" style={{ color: 'var(--accent)' }}>
+                                    <span className="text-[13px] font-semibold uppercase tracking-wider group-hover:translate-x-0.5 transition-transform" style={{ color: 'var(--accent)' }}>
                                         Read Insights →
                                     </span>
-                                    <span className="text-[9px] font-medium" style={{ color: 'var(--text-faint)' }}>
+                                    <span className="text-[11px] font-medium" style={{ color: 'var(--text-faint)' }}>
                                         {new Date(adj.publishedAt).toLocaleDateString()}
                                     </span>
                                 </div>
@@ -363,8 +355,8 @@ export default function Dashboard() {
                             }}
                         >
                             <Info size={32} className="mb-2 opacity-20" />
-                            <p className="text-sm font-medium uppercase tracking-wider opacity-50">No health insights found</p>
-                            <p className="text-xs mt-1">Try syncing news to generate fresh advisories.</p>
+                            <p className="text-[15px] font-medium uppercase tracking-wider opacity-50">No health insights found</p>
+                            <p className="text-[13px] mt-1">Try syncing news to generate fresh advisories.</p>
                         </div>
                     )}
                 </div>
@@ -373,7 +365,7 @@ export default function Dashboard() {
                     <div className="flex justify-center pt-2">
                         <button
                             onClick={() => setShowAllNews(!showAllNews)}
-                            className="px-5 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all hover:bg-black/5"
+                            className="px-5 py-2 rounded-lg text-[13px] font-semibold uppercase tracking-wider transition-all hover:bg-black/5"
                             style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)', background: 'var(--card-bg)' }}
                         >
                             {showAllNews ? 'Show Less' : 'Show More'}
@@ -389,55 +381,146 @@ export default function Dashboard() {
                     <CalendarWidget />
                 </div>
 
-                {/* Request Volume */}
+                {/* Clinic Analytics Panel */}
                     <div
-                        className="rounded-xl p-5 fade-in"
+                        className="rounded-xl p-5 fade-in flex flex-col"
                         style={{
                             background: 'var(--card-bg)',
                             border: '1px solid var(--border)',
                             boxShadow: 'var(--shadow-sm)',
                         }}
                     >
-                        <div className="mb-4">
-                            <h3 className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>Request Volume</h3>
-                            <p className="text-xs font-normal" style={{ color: 'var(--text-muted)' }}>By type breakdown</p>
+                        {/* Section Header */}
+                        <div className="mb-5">
+                            <h3 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Clinic Analytics</h3>
+                            <p className="text-[11px] font-normal mt-0.5" style={{ color: 'var(--text-muted)' }}>Request volume & status overview</p>
                         </div>
-                        <ResponsiveContainer width="100%" height={180}>
-                            <PieChart>
-                                <Pie
-                                    data={requestVolumeData}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={50}
-                                    outerRadius={80}
-                                    paddingAngle={3}
-                                    dataKey="value"
-                                >
-                                    {requestVolumeData.map((entry, index) => (
-                                        <Cell key={index} fill={entry.color} />
-                                    ))}
-                                </Pie>
-                                <Tooltip
-                                    contentStyle={{
-                                        borderRadius: '12px',
-                                        border: '1px solid var(--border)',
-                                        fontSize: '12px',
-                                        background: 'var(--card-bg)',
-                                        color: 'var(--text-primary)',
-                                    }}
-                                />
-                            </PieChart>
-                        </ResponsiveContainer>
-                        <div className="space-y-2 mt-3">
-                            {requestVolumeData.map((item) => (
-                                <div key={item.name} className="flex items-center justify-between text-xs">
-                                    <div className="flex items-center gap-2.5">
-                                        <div className="w-2.5 h-2.5 rounded-full" style={{ background: item.color }} />
-                                        <span className="font-normal" style={{ color: 'var(--text-secondary)' }}>{item.name}</span>
+
+                        {/* ── Request Volume (Horizontal Bars) ── */}
+                        <div className="space-y-3 mb-6">
+                            <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Volume by Type</p>
+                            {(() => {
+                                const maxVal = Math.max(
+                                    state.appointments.length,
+                                    state.medicineRequests.length,
+                                    state.medicalCertRequests.length,
+                                    state.inquiries.length,
+                                    1
+                                );
+                                const bars = [
+                                    { label: 'Appointments', value: state.appointments.length, color: '#E25C5C', bg: 'rgba(226,92,92,0.1)' },
+                                    { label: 'Medicine Req.', value: state.medicineRequests.length, color: '#E5A832', bg: 'rgba(229,168,50,0.1)' },
+                                    { label: 'Med Cert Req.', value: state.medicalCertRequests.length, color: '#48BBEE', bg: 'rgba(72,187,238,0.1)' },
+                                    { label: 'Inquiries', value: state.inquiries.length, color: '#8896AA', bg: 'rgba(136,150,170,0.1)' },
+                                ];
+                                return bars.map(bar => (
+                                    <div key={bar.label}>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>{bar.label}</span>
+                                            <span className="text-[11px] font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>{bar.value}</span>
+                                        </div>
+                                        <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: bar.bg }}>
+                                            <div
+                                                className="h-full rounded-full transition-all duration-700 ease-out"
+                                                style={{
+                                                    width: `${Math.max((bar.value / maxVal) * 100, 2)}%`,
+                                                    background: `linear-gradient(90deg, ${bar.color}, ${bar.color}cc)`,
+                                                }}
+                                            />
+                                        </div>
                                     </div>
-                                    <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{item.value}</span>
-                                </div>
-                            ))}
+                                ));
+                            })()}
+                        </div>
+
+                        {/* Divider */}
+                        <div className="mb-5" style={{ height: '1px', background: 'var(--border-light)' }} />
+
+                        {/* ── Status Breakdown ── */}
+                        <div className="space-y-3 mb-6">
+                            <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Status Breakdown</p>
+                            {(() => {
+                                const pendingAppts = state.appointments.filter(a => a.status?.toUpperCase() === 'PENDING').length;
+                                const resolvedAppts = state.appointments.length - pendingAppts;
+                                const pendingMedReqs = state.medicineRequests.filter(r => r.status?.toUpperCase() === 'PENDING').length;
+                                const resolvedMedReqs = state.medicineRequests.length - pendingMedReqs;
+                                const pendingInq = state.inquiries.filter((i: any) => !i.completed_timestamp).length;
+                                const resolvedInq = state.inquiries.length - pendingInq;
+                                const pendingCerts = state.medicalCertRequests.filter(r => r.status?.toUpperCase() === 'PENDING').length;
+                                const resolvedCerts = state.medicalCertRequests.length - pendingCerts;
+
+                                const items = [
+                                    { label: 'Appointments', pending: pendingAppts, resolved: resolvedAppts, total: state.appointments.length },
+                                    { label: 'Medicine', pending: pendingMedReqs, resolved: resolvedMedReqs, total: state.medicineRequests.length },
+                                    { label: 'Med Certs', pending: pendingCerts, resolved: resolvedCerts, total: state.medicalCertRequests.length },
+                                    { label: 'Inquiries', pending: pendingInq, resolved: resolvedInq, total: state.inquiries.length },
+                                ];
+
+                                return items.map(item => {
+                                    const pct = item.total > 0 ? Math.round((item.resolved / item.total) * 100) : 0;
+                                    return (
+                                        <div key={item.label} className="flex items-center gap-3">
+                                            <span className="text-[11px] font-medium w-[72px] shrink-0 truncate" style={{ color: 'var(--text-secondary)' }}>{item.label}</span>
+                                            <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'var(--bg-wash)' }}>
+                                                <div
+                                                    className="h-full rounded-full transition-all duration-700"
+                                                    style={{
+                                                        width: `${Math.max(pct, 2)}%`,
+                                                        background: pct >= 70 ? '#2EBD85' : pct >= 40 ? '#E5A832' : '#E25C5C',
+                                                    }}
+                                                />
+                                            </div>
+                                            <span className="text-[10px] font-bold tabular-nums w-[36px] text-right" style={{ color: pct >= 70 ? '#2EBD85' : pct >= 40 ? '#E5A832' : '#E25C5C' }}>
+                                                {pct}%
+                                            </span>
+                                        </div>
+                                    );
+                                });
+                            })()}
+                            <p className="text-[9px] font-medium italic mt-1" style={{ color: 'var(--text-faint)' }}>
+                                % of requests resolved (non-pending)
+                            </p>
+                        </div>
+
+                        {/* Divider */}
+                        <div className="mb-5" style={{ height: '1px', background: 'var(--border-light)' }} />
+
+                        {/* ── Inventory Health ── */}
+                        <div>
+                            <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--text-muted)' }}>Inventory Health</p>
+                            {(() => {
+                                const healthy = state.inventory.filter(i => i.status === 'Available' && i.quantity >= 20).length;
+                                const low = state.inventory.filter(i => i.status === 'Available' && i.quantity > 0 && i.quantity < 20).length;
+                                const critical = state.inventory.filter(i => i.status === 'Expired' || i.quantity === 0).length;
+                                const total = state.inventory.length || 1;
+                                return (
+                                    <>
+                                        <div className="grid grid-cols-3 gap-2 mb-3">
+                                            <div className="rounded-lg p-2.5 text-center" style={{ background: 'rgba(46,189,133,0.08)', border: '1px solid rgba(46,189,133,0.15)' }}>
+                                                <p className="text-lg font-black leading-none" style={{ color: '#2EBD85' }}>{healthy}</p>
+                                                <p className="text-[9px] font-bold uppercase tracking-wider mt-1 text-emerald-400">Healthy</p>
+                                            </div>
+                                            <div className="rounded-lg p-2.5 text-center" style={{ background: 'rgba(229,168,50,0.08)', border: '1px solid rgba(229,168,50,0.15)' }}>
+                                                <p className="text-lg font-black leading-none" style={{ color: '#E5A832' }}>{low}</p>
+                                                <p className="text-[9px] font-bold uppercase tracking-wider mt-1 text-amber-400">Low Stock</p>
+                                            </div>
+                                            <div className="rounded-lg p-2.5 text-center" style={{ background: 'rgba(226,92,92,0.08)', border: '1px solid rgba(226,92,92,0.15)' }}>
+                                                <p className="text-lg font-black leading-none" style={{ color: '#E25C5C' }}>{critical}</p>
+                                                <p className="text-[9px] font-bold uppercase tracking-wider mt-1 text-red-400">Critical</p>
+                                            </div>
+                                        </div>
+                                        {/* Overall stock bar */}
+                                        <div className="w-full h-2.5 rounded-full overflow-hidden flex" style={{ background: 'var(--bg-wash)' }}>
+                                            <div className="h-full transition-all duration-700" style={{ width: `${(healthy / total) * 100}%`, background: '#2EBD85' }} />
+                                            <div className="h-full transition-all duration-700" style={{ width: `${(low / total) * 100}%`, background: '#E5A832' }} />
+                                            <div className="h-full transition-all duration-700" style={{ width: `${(critical / total) * 100}%`, background: '#E25C5C' }} />
+                                        </div>
+                                        <p className="text-[9px] font-medium mt-1.5 text-center" style={{ color: 'var(--text-faint)' }}>
+                                            {state.inventory.length} total items tracked
+                                        </p>
+                                    </>
+                                );
+                            })()}
                         </div>
                     </div>
             </div>
@@ -447,3 +530,4 @@ export default function Dashboard() {
         </div>
     );
 }
+

@@ -5,6 +5,7 @@ import {
     Eye, Calendar, User, Check, Phone, Package, ClipboardList, Edit, X, Pill,
     ArrowUp, ArrowDown, Edit2, Trash2, Clock, MessageSquare, ExternalLink, ShieldCheck
 } from 'lucide-react';
+
 import { useStore } from '../hooks/useStore';
 import jsPDF from 'jspdf';
 import {
@@ -21,7 +22,9 @@ import {
     updateMedicineRequestDB
 } from '../store';
 import { notifyIndividual, type NotificationType } from '../lib/notifications';
+import { sendBrevoEmail } from '../services/brevo';
 import { ConfirmationDialog } from '../components/ui/ConfirmationDialog';
+import { PaginationControl } from '../components/ui/PaginationControl';
 import type { MedicalCertRequest, MedicineRequest, SystemUser } from '../types';
 
 
@@ -81,12 +84,12 @@ export function NewMedRequestModal({
                             <h2 className="text-xl font-bold tracking-tight " style={{ color: 'var(--text-primary)' }}>
                                 {initialData ? 'Edit Medicine Request' : 'New Medicine Request'}
                             </h2>
-                            <p className="text-[10px] font-extrabold uppercase tracking-widest mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                            <p className="text-[11px] font-extrabold uppercase tracking-widest mt-0.5" style={{ color: 'var(--text-muted)' }}>
                                 {initialData ? 'Manage manually created details' : `Step ${step} of 2 • ${step === 1 ? 'Search Student' : 'Medical Details'}`}
                             </p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:bg-slate-200/50 hover:scale-110" style={{ color: 'var(--text-muted)' }}>
+                    <button onClick={onClose} className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:bg-red-50 hover:text-red-500 hover:scale-110" style={{ color: 'var(--text-muted)' }}>
                         <X size={24} />
                     </button>
                 </div>
@@ -110,7 +113,7 @@ export function NewMedRequestModal({
                             <div className="space-y-2">
                                 <div className="flex items-center gap-2 mb-3 ml-1">
                                     <div className="w-1 h-3 rounded-full bg-emerald-500" />
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Search Results</p>
+                                    <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Search Results</p>
                                 </div>
                                 {filteredUsers.length === 0 ? (
                                     <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed rounded-2xl bg-slate-50/50" style={{ borderColor: 'var(--border-light)' }}>
@@ -135,7 +138,7 @@ export function NewMedRequestModal({
                                                 </div>
                                                 <div>
                                                     <p className="text-base tracking-tight" style={{ color: 'var(--text-primary)' }}>{u.fullName || `${u.first_name} ${u.last_name}`}</p>
-                                                    <p className="text-[10px] uppercase tracking-widest text-slate-400 mt-0.5">ID: {u.studentId || u.student_number}</p>
+                                                    <p className="text-[11px] uppercase tracking-widest text-slate-400 mt-0.5">ID: {u.studentId || u.student_number}</p>
                                                 </div>
                                             </div>
                                             <ChevronDown size={20} className="-rotate-90 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
@@ -152,14 +155,14 @@ export function NewMedRequestModal({
                                     <User size={22} />
                                 </div>
                                 <div className="flex-1">
-                                    <p className="text-[9px] font-semibold uppercase tracking-widest text-slate-400 mb-0.5">Assigned Requester</p>
+                                    <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-0.5">Assigned Requester</p>
                                     <h4 className="text-sm tracking-tight" style={{ color: 'var(--text-primary)' }}>{selectedUser?.fullName || `${selectedUser?.first_name} ${selectedUser?.last_name}`}</h4>
-                                    <p className="text-[10px]" style={{ color: 'var(--text-faint)' }}>ID: {selectedUser?.studentId || selectedUser?.student_number}</p>
+                                    <p className="text-[11px]" style={{ color: 'var(--text-faint)' }}>ID: {selectedUser?.studentId || selectedUser?.student_number}</p>
                                 </div>
                                 {!initialData && (
                                     <button
                                         onClick={() => setStep(1)}
-                                        className="px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors"
+                                        className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors"
                                     >
                                         Change
                                     </button>
@@ -170,12 +173,12 @@ export function NewMedRequestModal({
                             <div className="space-y-4">
                                 <div className="flex items-center gap-2 mb-1 ml-1">
                                     <Package size={16} className="text-emerald-500" />
-                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Medicine & Stock Details</h3>
+                                    <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-400">Medicine & Stock Details</h3>
                                 </div>
 
                                 <div className="p-5 rounded-2xl space-y-4 border" style={{ background: 'var(--bg-wash)', borderColor: 'var(--border-light)' }}>
                                     <div className="space-y-1.5">
-                                        <label className="text-[10px] font-bold uppercase tracking-wider ml-1" style={{ color: 'var(--text-muted)' }}>Item Requested From Inventory</label>
+                                        <label className="text-[11px] font-bold uppercase tracking-wider ml-1" style={{ color: 'var(--text-muted)' }}>Item Requested From Inventory</label>
                                         <div className="relative">
                                             <select
                                                 value={formData.medicine}
@@ -197,7 +200,7 @@ export function NewMedRequestModal({
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1.5">
-                                            <label className="text-[10px] font-bold uppercase tracking-wider ml-1" style={{ color: 'var(--text-muted)' }}>Issue Quantity</label>
+                                            <label className="text-[11px] font-bold uppercase tracking-wider ml-1" style={{ color: 'var(--text-muted)' }}>Issue Quantity</label>
                                             <input
                                                 type="number"
                                                 min="1"
@@ -213,7 +216,7 @@ export function NewMedRequestModal({
                                             />
                                         </div>
                                         <div className="space-y-1.5">
-                                            <label className="text-[10px] font-bold uppercase tracking-wider ml-1" style={{ color: 'var(--text-muted)' }}>Origin Campus</label>
+                                            <label className="text-[11px] font-bold uppercase tracking-wider ml-1" style={{ color: 'var(--text-muted)' }}>Origin Campus</label>
                                             <input
                                                 value={formData.campus || 'Select Item First'}
                                                 readOnly
@@ -229,12 +232,12 @@ export function NewMedRequestModal({
                             <div className="space-y-4">
                                 <div className="flex items-center gap-2 mb-1 ml-1">
                                     <ClipboardList size={16} className="text-emerald-500" />
-                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Logistics & Remarks</h3>
+                                    <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-400">Logistics & Remarks</h3>
                                 </div>
 
                                 <div className="p-5 rounded-2xl space-y-4 border" style={{ background: 'var(--bg-wash)', borderColor: 'var(--border-light)' }}>
                                     <div className="space-y-1.5">
-                                        <label className="text-[10px] font-bold uppercase tracking-wider ml-1" style={{ color: 'var(--text-muted)' }}>Contact Information</label>
+                                        <label className="text-[11px] font-bold uppercase tracking-wider ml-1" style={{ color: 'var(--text-muted)' }}>Contact Information</label>
                                         <div className="relative">
                                             <Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                                             <input
@@ -248,7 +251,7 @@ export function NewMedRequestModal({
                                     </div>
 
                                     <div className="space-y-1.5">
-                                        <label className="text-[10px] font-bold uppercase tracking-wider ml-1" style={{ color: 'var(--text-muted)' }}>Reason for Request</label>
+                                        <label className="text-[11px] font-bold uppercase tracking-wider ml-1" style={{ color: 'var(--text-muted)' }}>Reason for Request</label>
                                         <textarea
                                             value={formData.request_reason}
                                             onChange={(e) => setFormData(p => ({ ...p, request_reason: e.target.value }))}
@@ -260,7 +263,7 @@ export function NewMedRequestModal({
                                     </div>
 
                                     <div className="space-y-1.5">
-                                        <label className="text-[10px] font-bold uppercase tracking-wider ml-1" style={{ color: 'var(--text-muted)' }}>Backdated Entry (Optional)</label>
+                                        <label className="text-[11px] font-bold uppercase tracking-wider ml-1" style={{ color: 'var(--text-muted)' }}>Backdated Entry (Optional)</label>
                                         <div className="relative">
                                             <Calendar size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                                             <input
@@ -283,7 +286,7 @@ export function NewMedRequestModal({
                     {step === 2 && !initialData && (
                         <button
                             onClick={() => setStep(1)}
-                            className="flex-1 py-3.5 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all active:scale-95 shadow-sm"
+                            className="flex-1 py-3.5 rounded-xl text-[12px] font-bold uppercase tracking-wider transition-all active:scale-95 shadow-sm"
                             style={{ background: 'var(--card-bg)', border: '1px solid var(--border-light)', color: 'var(--text-secondary)' }}
                         >
                             Back
@@ -397,7 +400,13 @@ const generateMedicalCertPDF = (request: MedicalCertRequest, details: CertDetail
     y += 5;
     doc.text('PLV Health Services', 140, y, { align: 'center' });
 
-    return doc.output('bloburl').toString();
+    const dataUri = doc.output('datauristring') as string;
+    const base64 = dataUri.includes('base64,') ? dataUri.split('base64,')[1] : '';
+
+    return {
+        blobUrl: doc.output('bloburl').toString(),
+        base64
+    };
 };
 
 // ---- Processing Modal ----
@@ -451,10 +460,10 @@ function CertProcessingModal({
                         </div>
                         <div>
                             <h2 className="text-xl font-bold tracking-tight " style={{ color: 'var(--text-primary)' }}>Certificate Details</h2>
-                            <p className="text-[10px] font-extrabold uppercase tracking-widest mt-0.5" style={{ color: 'var(--text-muted)' }}>Page {step} of 3 • {step === 1 ? 'Medical Information' : 'Review Body Template'}</p>
+                            <p className="text-[11px] font-extrabold uppercase tracking-widest mt-0.5" style={{ color: 'var(--text-muted)' }}>Page {step} of 3 • {step === 1 ? 'Medical Information' : 'Review Body Template'}</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:bg-slate-200/50 hover:scale-110" style={{ color: 'var(--text-muted)' }}>
+                    <button onClick={onClose} className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:bg-red-50 hover:text-red-500 hover:scale-110" style={{ color: 'var(--text-muted)' }}>
                         <X size={24} />
                     </button>
                 </div>
@@ -463,7 +472,7 @@ function CertProcessingModal({
                     {step === 1 ? (
                         <div className="grid grid-cols-2 gap-4">
                             <div className="col-span-2 relative">
-                                <label className="block text-[10px] font-semibold  uppercase tracking-widest mb-2">Location</label>
+                                <label className="block text-[11px] font-semibold  uppercase tracking-widest mb-2">Location</label>
                                 <select
                                     value={details.location}
                                     onChange={(e) => setDetails({ ...details, location: e.target.value })}
@@ -476,7 +485,7 @@ function CertProcessingModal({
                                 <ChevronDown size={14} className="absolute right-4 top-[42px] pointer-events-none text-slate-400" />
                             </div>
                             <div className="col-span-2">
-                                <label className="block text-[10px] font-semibold  uppercase tracking-widest mb-2">Nurse Assigned</label>
+                                <label className="block text-[11px] font-semibold  uppercase tracking-widest mb-2">Nurse Assigned</label>
                                 <input
                                     value={details.nurse_assigned}
                                     onChange={(e) => setDetails({ ...details, nurse_assigned: e.target.value })}
@@ -486,7 +495,7 @@ function CertProcessingModal({
                                 />
                             </div>
                             <div className="col-span-2">
-                                <label className="block text-[10px] font-semibold  uppercase tracking-widest mb-2">Diagnosis</label>
+                                <label className="block text-[11px] font-semibold  uppercase tracking-widest mb-2">Diagnosis</label>
                                 <input
                                     value={details.diagnosis}
                                     onChange={(e) => setDetails({ ...details, diagnosis: e.target.value })}
@@ -496,7 +505,7 @@ function CertProcessingModal({
                                 />
                             </div>
                             <div>
-                                <label className="block text-[10px] font-semibold  uppercase tracking-widest mb-2">Rest From</label>
+                                <label className="block text-[11px] font-semibold  uppercase tracking-widest mb-2">Rest From</label>
                                 <input
                                     type="date"
                                     value={details.excuse_start}
@@ -506,7 +515,7 @@ function CertProcessingModal({
                                 />
                             </div>
                             <div>
-                                <label className="block text-[10px] font-semibold  uppercase tracking-widest mb-2">Rest Til</label>
+                                <label className="block text-[11px] font-semibold  uppercase tracking-widest mb-2">Rest Til</label>
                                 <input
                                     type="date"
                                     value={details.excuse_end}
@@ -519,7 +528,7 @@ function CertProcessingModal({
                     ) : (
                         <div className="space-y-4 fade-in">
                             <div>
-                                <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2">Certificate Body Text (Preview)</label>
+                                <label className="block text-[11px] font-semibold uppercase tracking-widest mb-2">Certificate Body Text (Preview)</label>
                                 <textarea
                                     value={details.custom_body}
                                     readOnly
@@ -527,7 +536,7 @@ function CertProcessingModal({
                                     className="w-full rounded-2xl px-5 py-4 text-sm font-medium outline-none transition-all resize-none opacity-90 leading-relaxed"
                                     style={{ background: 'var(--bg-wash)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
                                 />
-                                <div className="mt-3 p-4 rounded-xl border border-dashed text-[10px] font-bold uppercase tracking-tight text-slate-400" style={{ borderColor: 'var(--border)' }}>
+                                <div className="mt-3 p-4 rounded-xl border border-dashed text-[11px] font-bold uppercase tracking-tight text-slate-400" style={{ borderColor: 'var(--border)' }}>
                                     This text is dynamically generated based on the medical info from Step 1.
                                 </div>
                             </div>
@@ -585,7 +594,7 @@ function CertPreviewModal({
                         </div>
                         <div>
                             <h2 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Review Medical Certificate</h2>
-                            <p className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Final Validation Before Approval</p>
+                            <p className="text-[11px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Final Validation Before Approval</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-slate-100" style={{ color: 'var(--text-muted)' }}>
@@ -647,10 +656,10 @@ function ViewCertRequestModal({
                             <div className="flex items-center gap-2">
                                 <h2 className="text-xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>Medical Certificate Request</h2>
                                 {request.admin_created && (
-                                    <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-amber-100 text-amber-700 border-2 border-amber-200 shadow-sm animate-pulse">Admin Created Request</span>
+                                    <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-100 text-amber-700 border-2 border-amber-200 shadow-sm animate-pulse">Admin Created Request</span>
                                 )}
                             </div>
-                            <p className="text-[10px] font-extrabold uppercase tracking-widest mt-0.5" style={{ color: 'var(--text-muted)' }}>Status: {request.status} • Tracking #{request.id.substring(0, 8)}</p>
+                            <p className="text-[11px] font-extrabold uppercase tracking-widest mt-0.5" style={{ color: 'var(--text-muted)' }}>Status: {request.status} • Tracking #{request.id.substring(0, 8)}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -674,7 +683,7 @@ function ViewCertRequestModal({
                     <div className="grid grid-cols-2 gap-8">
                         <div className="space-y-6">
                             <div>
-                                <p className="text-[10px] font-semibold  uppercase tracking-widest mb-2">Requester Information</p>
+                                <p className="text-[11px] font-semibold  uppercase tracking-widest mb-2">Requester Information</p>
                                 <div className="rounded-2xl p-4" style={{ background: 'var(--bg-wash)', border: '1px solid var(--border)' }}>
                                     <h4 className="font-semibold text-lg" style={{ color: 'var(--text-primary)' }}>{request.requester_name}</h4>
                                     <p className="text-xs font-bold mt-0.5" style={{ color: 'var(--text-muted)' }}>ID: {request.requester_student_number}</p>
@@ -684,7 +693,7 @@ function ViewCertRequestModal({
                                 </div>
                             </div>
                             <div>
-                                <p className="text-[10px] font-semibold  uppercase tracking-widest mb-2">Requested Date</p>
+                                <p className="text-[11px] font-semibold  uppercase tracking-widest mb-2">Requested Date</p>
                                 <p className="text-sm font-bold  flex items-center gap-2">
                                     <Calendar size={14} className="text-slate-300" />
                                     {new Date(request.requested_tst).toLocaleString()}
@@ -694,38 +703,31 @@ function ViewCertRequestModal({
 
                         <div className="space-y-6">
                             <div>
-                                <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Purpose of Request</p>
+                                <p className="text-[11px] font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Purpose of Request</p>
                                 <p className="text-sm font-medium leading-relaxed p-4 rounded-2xl border italic" style={{ background: 'var(--bg-wash)', border: '1px solid var(--border-light)', color: 'var(--text-secondary)' }}>
                                     "{request.request_reason || 'No specific reason provided.'}"
                                 </p>
                             </div>
-                            <div>
-                                <p className="text-[10px] font-semibold  uppercase tracking-widest mb-2">Supporting Document</p>
-                                {request.uploaded_id_img ? (
-                                    <div className="relative aspect-video rounded-2xl bg-slate-100 border  overflow-hidden group">
-                                        <img
-                                            src={request.uploaded_id_img}
-                                            alt="Supporting ID"
-                                            className="w-full h-full object-cover"
+
+                            {request.uploaded_id_img && (
+                                <div className="space-y-2">
+                                    <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Uploaded ID Verification</p>
+                                    <div className="rounded-2xl overflow-hidden border shadow-sm group relative" style={{ borderColor: 'var(--border-light)' }}>
+                                        <img 
+                                            src={request.uploaded_id_img} 
+                                            alt="Student ID" 
+                                            className="w-full h-40 object-cover transition-transform duration-500 group-hover:scale-110 cursor-pointer"
+                                            onClick={() => window.open(request.uploaded_id_img, '_blank')}
                                         />
-                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                            <a
-                                                href={request.uploaded_id_img}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="px-4 py-2  rounded-xl text-xs font-semibold uppercase tracking-widest"
-                                            >
-                                                View Original
-                                            </a>
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                                            <div className="p-3 rounded-full bg-white/20 backdrop-blur-md text-white">
+                                                <ExternalLink size={20} />
+                                            </div>
                                         </div>
                                     </div>
-                                ) : (
-                                    <div className="aspect-video rounded-2xl  flex flex-col items-center justify-center text-slate-300 border-2 border-dashed ">
-                                        <Eye size={24} className="opacity-20 mb-2" />
-                                        <p className="text-[10px] font-bold">No Image Uploaded</p>
-                                    </div>
-                                )}
-                            </div>
+                                    <p className="text-[10px] text-slate-400 italic text-center">Click image to view high-resolution version</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -737,14 +739,14 @@ function ViewCertRequestModal({
                                 <button
                                     onClick={() => onStatusChange('REJECTED')}
                                     disabled={isSubmitting}
-                                    className="flex-1 py-3 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-[10px] font-semibold uppercase tracking-widest transition-all active:scale-95 border border-red-100"
+                                    className="flex-1 py-3 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-95 border border-red-100"
                                 >
                                     Decline Request
                                 </button>
                                 <button
                                     onClick={() => onStatusChange('COMPLETED')}
                                     disabled={isSubmitting}
-                                    className="flex-1 py-3 bg-emerald-500 text-white hover:bg-emerald-600 rounded-xl text-[10px] font-semibold uppercase tracking-widest transition-all active:scale-95"
+                                    className="flex-1 py-3 bg-emerald-500 text-white hover:bg-emerald-600 rounded-xl text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-95"
                                 >
                                     Approve & Process
                                 </button>
@@ -753,7 +755,7 @@ function ViewCertRequestModal({
                         {request.status !== 'PENDING' && (
                             <div className={`flex-1 py-3 flex items-center justify-center rounded-2xl border ${request.status === 'COMPLETED' ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'
                                 }`}>
-                                <span className={`text-[10px] font-bold uppercase tracking-widest ${request.status === 'COMPLETED' ? 'text-emerald-600' : 'text-red-600'
+                                <span className={`text-[11px] font-bold uppercase tracking-widest ${request.status === 'COMPLETED' ? 'text-emerald-600' : 'text-red-600'
                                     }`}>
                                     Status: {request.status}
                                 </span>
@@ -794,10 +796,10 @@ export function ViewMedicineRequestModal({
                             <div className="flex items-center gap-2">
                                 <h2 className="text-xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>Medicine Request</h2>
                                 {request.admin_created && (
-                                    <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-amber-100 text-amber-700 border-2 border-amber-200 shadow-sm animate-pulse">Admin Created Request</span>
+                                    <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-100 text-amber-700 border-2 border-amber-200 shadow-sm animate-pulse">Admin Created Request</span>
                                 )}
                             </div>
-                            <p className="text-[10px] font-extrabold uppercase tracking-widest mt-0.5" style={{ color: 'var(--text-muted)' }}>Request Details Tracking #{request.id.substring(0, 8)}</p>
+                            <p className="text-[11px] font-extrabold uppercase tracking-widest mt-0.5" style={{ color: 'var(--text-muted)' }}>Request Details Tracking #{request.id.substring(0, 8)}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -821,7 +823,7 @@ export function ViewMedicineRequestModal({
                     <div className="grid grid-cols-2 gap-8">
                         <div className="space-y-6">
                             <div>
-                                <p className="text-[10px] font-semibold  uppercase tracking-widest mb-2">Requester Information</p>
+                                <p className="text-[11px] font-semibold  uppercase tracking-widest mb-2">Requester Information</p>
                                 <div className="rounded-2xl p-4" style={{ background: 'var(--bg-wash)', border: '1px solid var(--border)' }}>
                                     <h4 className="font-semibold text-lg" style={{ color: 'var(--text-primary)' }}>{request.requester_name}</h4>
                                     <p className="text-xs font-bold mt-0.5" style={{ color: 'var(--text-muted)' }}>ID: {request.requester_student_number}</p>
@@ -831,7 +833,7 @@ export function ViewMedicineRequestModal({
                                 </div>
                             </div>
                             <div>
-                                <p className="text-[10px] font-semibold  uppercase tracking-widest mb-2">Requested Date</p>
+                                <p className="text-[11px] font-semibold  uppercase tracking-widest mb-2">Requested Date</p>
                                 <p className="text-sm font-bold  flex items-center gap-2">
                                     <Calendar size={14} className="text-slate-300" />
                                     {new Date(request.requested_tst).toLocaleString()}
@@ -841,14 +843,14 @@ export function ViewMedicineRequestModal({
 
                         <div className="space-y-6">
                             <div>
-                                <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Medicine Requested</p>
+                                <p className="text-[11px] font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Medicine Requested</p>
                                 <div className="p-4 rounded-2xl border" style={{ background: 'var(--bg-wash)', border: '1px solid var(--border-light)' }}>
                                     <h4 className="font-semibold text-lg" style={{ color: 'var(--text-primary)' }}>{request.medicine}</h4>
                                     <p className="text-xs font-medium mt-0.5" style={{ color: 'var(--text-secondary)' }}>Quantity: {request.medicine_qty} units</p>
                                 </div>
                             </div>
                             <div>
-                                <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Reason for Request</p>
+                                <p className="text-[11px] font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Reason for Request</p>
                                 <p className="text-sm font-medium leading-relaxed p-4 rounded-2xl border italic" style={{ background: 'var(--bg-wash)', border: '1px solid var(--border-light)', color: 'var(--text-secondary)' }}>
                                     "{request.request_reason || 'No specific reason provided.'}"
                                 </p>
@@ -864,14 +866,14 @@ export function ViewMedicineRequestModal({
                                 <button
                                     onClick={() => onStatusChange('REJECTED')}
                                     disabled={isSubmitting}
-                                    className="flex-1 py-3 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-[10px] font-semibold uppercase tracking-widest transition-all active:scale-95 border border-red-100"
+                                    className="flex-1 py-3 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-95 border border-red-100"
                                 >
                                     Reject Request
                                 </button>
                                 <button
                                     onClick={() => onStatusChange('ACCEPTED')}
                                     disabled={isSubmitting}
-                                    className="flex-1 py-3 bg-emerald-500 text-white hover:bg-emerald-600 rounded-xl text-[10px] font-semibold uppercase tracking-widest transition-all active:scale-95"
+                                    className="flex-1 py-3 bg-emerald-500 text-white hover:bg-emerald-600 rounded-xl text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-95"
                                 >
                                     Approve Request
                                 </button>
@@ -882,14 +884,14 @@ export function ViewMedicineRequestModal({
                                 <button
                                     onClick={() => onStatusChange('REJECTED')}
                                     disabled={isSubmitting}
-                                    className="flex-1 py-3 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-[10px] font-semibold uppercase tracking-widest transition-all active:scale-95 border border-red-100"
+                                    className="flex-1 py-3 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-95 border border-red-100"
                                 >
                                     Reject Request
                                 </button>
                                 <button
                                     onClick={() => onStatusChange('DISPENSED')}
                                     disabled={isSubmitting}
-                                    className="flex-1 py-3 bg-blue-500 text-white hover:bg-blue-600 rounded-xl text-[10px] font-semibold uppercase tracking-widest transition-all active:scale-95 shadow-md hover:shadow-lg hover:shadow-blue-500/20"
+                                    className="flex-1 py-3 bg-blue-500 text-white hover:bg-blue-600 rounded-xl text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-95 shadow-md hover:shadow-lg hover:shadow-blue-500/20"
                                 >
                                     Mark as Dispensed
                                 </button>
@@ -898,7 +900,7 @@ export function ViewMedicineRequestModal({
                         {(request.status === 'DISPENSED' || request.status === 'REJECTED') && (
                             <div className={`flex-1 py-3 flex items-center justify-center rounded-2xl border ${request.status === 'DISPENSED' ? 'bg-blue-50 border-blue-100' : 'bg-red-50 border-red-100'
                                 }`}>
-                                <span className={`text-[10px] font-bold uppercase tracking-widest ${request.status === 'DISPENSED' ? 'text-blue-600' : 'text-red-600'
+                                <span className={`text-[11px] font-bold uppercase tracking-widest ${request.status === 'DISPENSED' ? 'text-blue-600' : 'text-red-600'
                                     }`}>
                                     Status: {request.status}
                                 </span>
@@ -939,7 +941,7 @@ export function RejectReasonModal({
                     style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-wash)' }}>
                     <div>
                         <h3 className="text-lg font-bold" style={{ color: 'var(--danger)' }}>Decline Request</h3>
-                        <p className="text-[10px] font-medium uppercase tracking-wider mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                        <p className="text-[11px] font-medium uppercase tracking-wider mt-0.5" style={{ color: 'var(--text-muted)' }}>
                             Decline request from {request?.requester_name}
                         </p>
                     </div>
@@ -958,7 +960,7 @@ export function RejectReasonModal({
                     </div>
 
                     <div>
-                        <label className="block text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Reason for Rejection</label>
+                        <label className="block text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Reason for Rejection</label>
                         <textarea
                             value={reason}
                             onChange={e => setReason(e.target.value)}
@@ -977,7 +979,7 @@ export function RejectReasonModal({
                     <button
                         onClick={() => onConfirm(reason)}
                         disabled={!reason.trim() || isSubmitting}
-                        className="flex-1 py-3.5 rounded-xl text-[11px] font-semibold uppercase tracking-wider transition-all active:scale-95 disabled:opacity-40"
+                        className="flex-1 py-3.5 rounded-xl text-[12px] font-semibold uppercase tracking-wider transition-all active:scale-95 disabled:opacity-40"
                         style={{ background: 'var(--danger)', color: 'white' }}
                     >
                         {isSubmitting ? 'Processing...' : 'Decline Request'}
@@ -990,7 +992,7 @@ export function RejectReasonModal({
 
 // ---- Main Medical Requests Page ----
 export default function MedicalRequests() {
-    const { medicalCertRequests, medicineRequests } = useStore();
+    const { medicalCertRequests, medicineRequests, users } = useStore();
     const [activeTab, setActiveTab] = useState<'CERTS' | 'MEDS'>('CERTS');
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('PENDING');
@@ -1006,6 +1008,7 @@ export default function MedicalRequests() {
 
     // PDF Preview
     const [previewCertUrl, setPreviewCertUrl] = useState<string | null>(null);
+    const [previewCertBase64, setPreviewCertBase64] = useState<string | null>(null);
     const [certToProcess, setCertToProcess] = useState<MedicalCertRequest | null>(null);
     const [showProcessDetails, setShowProcessDetails] = useState(false);
     const [currentCertDetails, setCurrentCertDetails] = useState<CertDetails | null>(null);
@@ -1085,6 +1088,8 @@ export default function MedicalRequests() {
         ? filteredCerts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
         : filteredMeds.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
+
+
     const handleUpdateStatus = async (reason?: string) => {
         const action = confirmAction || (rejectAction ? { ...rejectAction, status: 'REJECTED' } : null);
         if (!action || !action.req) return;
@@ -1093,7 +1098,7 @@ export default function MedicalRequests() {
         try {
             if (action.type === 'CERTS') {
                 await updateMedicalCertStatusDB(action.req.id, action.status, reason);
-                addLog('Admin', `Updated medical cert request ${action.req.id} status to ${action.status}`);
+                addLog('Admin', `Updated medical cert request status to ${action.status} for ${action.req.requester_name}`);
 
                 await notifyIndividual(
                     action.req.requester_id,
@@ -1105,11 +1110,27 @@ export default function MedicalRequests() {
             } else {
                 const medReq = action.req as MedicineRequest;
                 await updateMedicineRequestStatusDB(medReq.id, action.status, medReq.medicine, medReq.medicine_qty, reason);
-                addLog('Admin', `Updated medicine request ${medReq.id} status to ${action.status}`);
+                addLog('Admin', `Updated medicine request status to ${action.status} for ${medReq.requester_name}`);
 
                 let notifyMsg = `The status of your medicine request for ${medReq.medicine} (${medReq.medicine_qty} units) has been moved to ${action.status}.`;
                 if (action.status === 'ACCEPTED') {
                     notifyMsg = `Your medicine request for ${medReq.medicine} has been approved. Please proceed to the clinic to receive your medicine.`;
+                    
+                    // Send Brevo Email for Medicine Request Approved
+                    const userEmail = users.find(u => u.id === medReq.requester_id)?.email;
+                    if (userEmail) {
+                        sendBrevoEmail({
+                            templateId: Number(import.meta.env.VITE_BREVO_MED_TEMPLATE_ID) || 2,
+                            toEmail: userEmail,
+                            params: {
+                                NAME: medReq.requester_name || 'Student',
+                                MEDS_LIST: `- ${medReq.medicine} (${medReq.medicine_qty} units)`,
+                                LOCATION: 'Clinic Pharmacy Desk',
+                                PICKUP_TIME: 'Operating Hours (8 AM - 5 PM)',
+                                REQ_ID: medReq.id.substring(0, 8).toUpperCase()
+                            }
+                        }).catch(e => console.error("Brevo Email Failed", e));
+                    }
                 } else if (action.status === 'DISPENSED') {
                     notifyMsg = `Your requested medicine ${medReq.medicine} has been dispensed successfully.`;
                 }
@@ -1148,6 +1169,24 @@ export default function MedicalRequests() {
                 certToProcess.id
             );
 
+            // Send Brevo Email
+            const userEmail = users.find(u => u.id === certToProcess.requester_id)?.email;
+            if (userEmail && previewCertBase64) {
+                sendBrevoEmail({
+                    templateId: Number(import.meta.env.VITE_BREVO_CERT_TEMPLATE_ID) || 1,
+                    toEmail: userEmail,
+                    params: {
+                        NAME: certToProcess.requester_name || 'Student',
+                        REF_NUMBER: certToProcess.id.substring(0, 8).toUpperCase(),
+                        DATE: new Date().toLocaleDateString()
+                    },
+                    attachment: [{
+                        content: previewCertBase64,
+                        name: `Medical_Certificate_${certToProcess.requester_name?.replace(/\\s+/g, '_')}.pdf`
+                    }]
+                }).catch(e => console.error("Brevo Email Failed", e));
+            }
+
             const link = document.createElement('a');
             link.href = previewCertUrl;
             link.download = `Medical_Cert_${certToProcess.requester_name?.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
@@ -1171,10 +1210,10 @@ export default function MedicalRequests() {
         try {
             if (confirmDelete.type === 'CERTS') {
                 await deleteMedicalCertRequestDB(confirmDelete.req.id);
-                addLog('Admin', `Deleted medical cert request ${confirmDelete.req.id}`);
+                addLog('Admin', `Deleted medical cert request for ${confirmDelete.req.requester_name}`);
             } else {
                 await deleteMedicineRequestDB(confirmDelete.req.id);
-                addLog('Admin', `Deleted medicine request ${confirmDelete.req.id}`);
+                addLog('Admin', `Deleted medicine request for ${confirmDelete.req.requester_name}`);
             }
             setConfirmDelete(null);
         } catch (e: any) {
@@ -1216,9 +1255,9 @@ export default function MedicalRequests() {
                         </div>
                         <div className="flex items-center gap-3">
                             <div className="hidden sm:flex flex-col items-end">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">System Status</span>
+                                <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">System Status</span>
                                 <span className="text-xs font-bold text-emerald-500 flex items-center gap-1.5">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                     Active Processing
                                 </span>
                             </div>
@@ -1227,10 +1266,10 @@ export default function MedicalRequests() {
 
                     {/* Tab Switcher & Create Button Row */}
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                        <div className="inline-flex p-1.5 rounded-2xl" style={{ background: 'var(--bg-wash)', border: '1px solid var(--border-light)' }}>
+                        <div className="inline-flex p-0 rounded-2xl" style={{ background: 'var(--bg-wash)', border: '1px solid var(--border-light)' }}>
                             <button
                                 onClick={() => setActiveTab('CERTS')}
-                                className={`px-8 py-3 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all ${activeTab === 'CERTS' ? 'shadow-md scale-105 z-10' : 'opacity-60 hover:opacity-100'}`}
+                                className={`px-8 py-3 rounded-xl text-[12px] font-bold uppercase tracking-widest transition-all ${activeTab === 'CERTS' ? 'shadow-md scale-105 z-10' : 'opacity-60 hover:opacity-100'}`}
                                 style={{
                                     background: activeTab === 'CERTS' ? 'var(--card-bg)' : 'transparent',
                                     color: activeTab === 'CERTS' ? 'var(--accent)' : 'var(--text-faint)',
@@ -1242,7 +1281,7 @@ export default function MedicalRequests() {
                             </button>
                             <button
                                 onClick={() => setActiveTab('MEDS')}
-                                className={`px-8 py-3 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all ${activeTab === 'MEDS' ? 'shadow-md scale-105 z-10' : 'opacity-60 hover:opacity-100'}`}
+                                className={`px-8 py-3 rounded-xl text-[12px] font-bold uppercase tracking-widest transition-all ${activeTab === 'MEDS' ? 'shadow-md scale-105 z-10' : 'opacity-60 hover:opacity-100'}`}
                                 style={{
                                     background: activeTab === 'MEDS' ? 'var(--card-bg)' : 'transparent',
                                     color: activeTab === 'MEDS' ? 'var(--success)' : 'var(--text-faint)',
@@ -1273,9 +1312,9 @@ export default function MedicalRequests() {
                     </div>
 
                     {/* Search & Filter Bar */}
-                    <div className="rounded-2xl p-4 flex flex-wrap items-center gap-4 transition-colors"
+                    <div className="rounded-2xl p-4 flex flex-col md:flex-row flex-wrap items-stretch md:items-center gap-4 transition-colors"
                         style={{ background: 'var(--card-bg)', border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-sm)' }}>
-                        <div className="relative flex-1 max-w-sm group">
+                        <div className="relative flex-1 min-w-full md:min-w-[280px] md:max-w-md group">
                             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors" style={{ color: 'var(--text-faint)' }} />
                             <input
                                 value={searchTerm}
@@ -1290,7 +1329,7 @@ export default function MedicalRequests() {
                                 <select
                                     value={statusFilter}
                                     onChange={(e) => setStatusFilter(e.target.value)}
-                                    className="appearance-none rounded-xl px-5 py-2.5 pr-10 text-xs font-bold uppercase tracking-wider outline-none transition-all cursor-pointer"
+                                    className="appearance-none rounded-xl px-4 py-2 pr-9 text-[11px] font-bold uppercase tracking-wider outline-none transition-all cursor-pointer"
                                     style={{ background: 'var(--bg-wash)', border: '1px solid var(--border-light)', color: 'var(--text-secondary)' }}
                                 >
                                     <option value="ALL">Status: All</option>
@@ -1305,20 +1344,25 @@ export default function MedicalRequests() {
                                     )}
                                     <option value="REJECTED">Request Declined</option>
                                 </select>
-                                <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+                                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+                            </div>
+
+                            <div className="flex items-center gap-2 border-l pl-3 ml-1" style={{ borderColor: 'var(--border-light)' }}>
+                                
+                                
                             </div>
                         </div>
                     </div>
 
                     {/* Requests Table */}
-                    <div className="w-full rounded-3xl overflow-hidden flex flex-col shadow-xl" style={{ background: 'var(--card-bg)', border: '1px solid var(--border-light)', minHeight: '520px' }}>
+                    <div className="mobile-card-table w-full rounded-3xl overflow-hidden flex flex-col shadow-xl" style={{ background: 'var(--card-bg)', border: '1px solid var(--border-light)', minHeight: '520px' }}>
                         <div className="flex-1 overflow-x-auto">
                             <table className="w-full border-collapse medical-requests-card-table">
                                 <thead>
                                     <tr style={{ background: 'var(--bg-wash)' }}>
-                                        <th className="text-left text-[10px] font-extrabold uppercase tracking-widest px-6 py-4" style={{ color: 'var(--text-muted)', fontFamily: 'Poppins, sans-serif' }}>Student Details</th>
+                                        <th className="text-left text-[11px] font-extrabold uppercase tracking-widest px-6 py-4" style={{ color: 'var(--text-muted)', fontFamily: 'Poppins, sans-serif' }}>Student Details</th>
                                         <th
-                                            className="text-left text-[10px] font-extrabold uppercase tracking-widest px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors group/sort"
+                                            className="text-left text-[11px] font-extrabold uppercase tracking-widest px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors group/sort"
                                             style={{ color: 'var(--text-muted)', fontFamily: 'Poppins, sans-serif' }}
                                             onClick={() => setReqDateSort(p => p === 'ASC' ? 'DESC' : 'ASC')}
                                         >
@@ -1327,11 +1371,11 @@ export default function MedicalRequests() {
                                                 {reqDateSort === 'ASC' ? <ArrowUp size={12} className="text-blue-500" /> : <ArrowDown size={12} className="text-blue-500" />}
                                             </div>
                                         </th>
-                                        <th className="text-left text-[10px] font-extrabold uppercase tracking-widest px-6 py-4" style={{ color: 'var(--text-muted)', fontFamily: 'Poppins, sans-serif' }}>
+                                        <th className="text-left text-[11px] font-extrabold uppercase tracking-widest px-6 py-4" style={{ color: 'var(--text-muted)', fontFamily: 'Poppins, sans-serif' }}>
                                             {activeTab === 'CERTS' ? 'Clinical Purpose' : 'Item Info'}
                                         </th>
-                                        <th className="text-left text-[10px] font-extrabold uppercase tracking-widest px-6 py-4" style={{ color: 'var(--text-muted)', fontFamily: 'Poppins, sans-serif' }}>Current Status</th>
-                                        <th className="text-right text-[10px] font-extrabold uppercase tracking-widest px-6 py-4" style={{ color: 'var(--text-muted)', fontFamily: 'Poppins, sans-serif' }}>Management</th>
+                                        <th className="text-left text-[11px] font-extrabold uppercase tracking-widest px-6 py-4" style={{ color: 'var(--text-muted)', fontFamily: 'Poppins, sans-serif' }}>Current Status</th>
+                                        <th className="text-right text-[11px] font-extrabold uppercase tracking-widest px-6 py-4" style={{ color: 'var(--text-muted)', fontFamily: 'Poppins, sans-serif' }}>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1347,10 +1391,14 @@ export default function MedicalRequests() {
                                     ) : (
                                         paginatedItems.map(req => (
                                             <tr key={req.id} className="transition-all group" style={{ borderBottom: '1px solid var(--border-light)' }}>
-                                                <td className="px-6 py-4">
+                                                <td data-label="Student Details" className="px-6 py-4">
                                                     <div className="flex items-center gap-4">
-                                                        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-sm border ${activeTab === 'CERTS' ? 'bg-blue-50 text-blue-500 border-blue-100' : 'bg-emerald-50 text-emerald-500 border-emerald-100'}`}>
-                                                            <User size={18} />
+                                                        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-sm border overflow-hidden ${activeTab === 'CERTS' ? 'bg-blue-50 text-blue-500 border-blue-100' : 'bg-emerald-50 text-emerald-500 border-emerald-100'}`}>
+                                                            {req.profiles?.profile_picture_url ? (
+                                                                <img src={req.profiles.profile_picture_url} alt="" className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                <span className="text-sm font-bold">{(req.requester_name || '?')[0].toUpperCase()}</span>
+                                                            )}
                                                         </div>
                                                         <div className="flex flex-col">
                                                             <div className="flex items-center gap-2">
@@ -1358,7 +1406,7 @@ export default function MedicalRequests() {
 
                                                             </div>
                                                             <div className="flex items-center gap-2">
-                                                                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+                                                                <span className="text-[11px] font-extrabold uppercase tracking-widest">
                                                                     ID: {req.requester_student_number}
                                                                 </span>
 
@@ -1371,23 +1419,23 @@ export default function MedicalRequests() {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4">
+                                                <td data-label="Requested Date" className="px-6 py-4">
                                                     <div className="flex flex-col">
                                                         <span className="text-sm font-semibold text-slate-600">
                                                             {new Date(req.requested_tst).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
                                                         </span>
-                                                        <span className="text-[9px] font-extrabold uppercase tracking-widest text-slate-300">
+                                                        <span className="text-[10px] font-extrabold uppercase tracking-widest">
                                                             {new Date(req.requested_tst).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })}
                                                         </span>
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 max-w-[280px]">
+                                                <td data-label={activeTab === 'CERTS' ? 'Purpose' : 'Item Info'} className="px-6 py-4 max-w-[280px]">
                                                     {activeTab === 'CERTS' ? (
                                                         <div className="flex flex-col">
                                                             <span className="text-sm font-medium text-slate-500 line-clamp-1 italic">
                                                                 "{(req as MedicalCertRequest).request_reason}"
                                                             </span>
-                                                            <span className="text-[9px] font-semibold uppercase tracking-widest text-slate-300 mt-1">Stated Reason</span>
+                                                            <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-300 mt-1">Stated Reason</span>
                                                         </div>
                                                     ) : (
                                                         <div className="flex items-center gap-2.5">
@@ -1396,12 +1444,12 @@ export default function MedicalRequests() {
                                                             </div>
                                                             <div className="flex flex-col">
                                                                 <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{(req as MedicineRequest).medicine}</span>
-                                                                <span className="text-[10px] uppercase tracking-widest text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md w-fit mt-1">Qty: {(req as MedicineRequest).medicine_qty} Units</span>
+                                                                <span className="text-[11px] uppercase tracking-widest text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md w-fit mt-1">Qty: {(req as MedicineRequest).medicine_qty} Units</span>
                                                             </div>
                                                         </div>
                                                     )}
                                                 </td>
-                                                <td className="px-6 py-4">
+                                                <td data-label="Status" className="px-6 py-4">
                                                     <span className={`status-badge-modern ${req.status === 'PENDING' ? 'status-badge-pending' :
                                                         req.status === 'COMPLETED' ? 'status-badge-completed' :
                                                             req.status === 'ACCEPTED' ? 'status-badge-upcoming' :
@@ -1411,7 +1459,7 @@ export default function MedicalRequests() {
                                                         {req.status === 'ACCEPTED' ? 'Approved' : req.status.charAt(0) + req.status.slice(1).toLowerCase()}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4">
+                                                <td data-label="Actions" className="px-6 py-4">
                                                     <div className="flex items-center justify-end gap-2.5">
                                                         {req.status === 'PENDING' && (
                                                             <button
@@ -1464,36 +1512,14 @@ export default function MedicalRequests() {
                         </div>
                         {/* Pagination */}
                         <div className="px-6 py-4 flex items-center justify-between" style={{ background: 'var(--bg-wash)', borderTop: '1px solid var(--border-light)' }}>
-                            <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+                            <p className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
                                 Showing <span className="text-slate-900">{paginatedItems.length}</span> of <span className="text-slate-900">{activeTab === 'CERTS' ? filteredCerts.length : filteredMeds.length}</span> Results
                             </p>
-                            <div className="flex items-center gap-3">
-                                <button
-                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                    disabled={currentPage === 1}
-                                    className="px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30 border border-slate-200 hover:bg-slate-50 transition-all "
-                                >
-                                    Previous
-                                </button>
-                                <div className="flex items-center gap-1.5">
-                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                                        <button
-                                            key={page}
-                                            onClick={() => setCurrentPage(page)}
-                                            className={`w-9 h-9 rounded-xl text-[10px] font-black transition-all  ${currentPage === page ? 'bg-[var(--accent)] text-white shadow-lg scale-110' : 'text-slate-400 hover:bg-slate-100'}`}
-                                        >
-                                            {page}
-                                        </button>
-                                    ))}
-                                </div>
-                                <button
-                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                    disabled={currentPage === totalPages || totalPages === 0}
-                                    className="px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30 border border-slate-200 hover:bg-slate-50 transition-all "
-                                >
-                                    Next
-                                </button>
-                            </div>
+                            <PaginationControl
+                                currentPage={currentPage}
+                                totalPages={Math.max(1, totalPages)}
+                                onPageChange={setCurrentPage}
+                            />
                         </div>
                     </div>
                 </div>
@@ -1506,7 +1532,7 @@ export default function MedicalRequests() {
                             <h3 className="text-sm font-bold tracking-tight mb-1" style={{ color: 'var(--text-primary)' }}>
                                 {activeTab === 'CERTS' ? 'Certificate Overview' : 'Medicine Dispatch Summary'}
                             </h3>
-                            <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Real-time status updates</p>
+                            <p className="text-[11px] font-bold uppercase tracking-widest opacity-60">Real-time status updates</p>
                         </div>
 
                         <div className="space-y-4">
@@ -1516,7 +1542,7 @@ export default function MedicalRequests() {
                                         <Clock size={18} />
                                     </div>
                                     <div>
-                                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Total Pending</p>
+                                        <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Total Pending</p>
                                         <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
                                             {activeTab === 'CERTS' ? stats.certs.pending : stats.meds.pending}
                                         </p>
@@ -1530,7 +1556,7 @@ export default function MedicalRequests() {
                                         <Check size={18} />
                                     </div>
                                     <div>
-                                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                                        <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
                                             {activeTab === 'CERTS' ? 'Issued MedCerts' : 'Dispensed Meds'}
                                         </p>
                                         <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
@@ -1542,9 +1568,9 @@ export default function MedicalRequests() {
                         </div>
 
                         <div className="pt-4 border-t flex items-center justify-between" style={{ borderColor: 'var(--border-light)' }}>
-                            <span className="text-[11px] font-bold text-slate-400">Success Rate</span>
-                            <span className="text-[11px] font-black text-emerald-600">
-                                {activeTab === 'CERTS' 
+                            <span className="text-[12px] font-bold text-slate-400">Success Rate</span>
+                            <span className="text-[12px] font-black text-emerald-600">
+                                {activeTab === 'CERTS'
                                     ? (stats.certs.total > 0 ? Math.round((stats.certs.completed / stats.certs.total) * 100) : 0)
                                     : (stats.meds.total > 0 ? Math.round((stats.meds.dispensed / stats.meds.total) * 100) : 0)
                                 }%
@@ -1558,15 +1584,9 @@ export default function MedicalRequests() {
                             <ShieldCheck size={80} color="#fff" />
                         </div>
                         <h4 className="text-white font-bold text-sm mb-2 relative z-10">Administrative Insight</h4>
-                        <p className="text-blue-100 text-[11px] leading-relaxed opacity-90 relative z-10">
+                        <p className="text-blue-100 text-[12px] leading-relaxed opacity-90 relative z-10">
                             Certificates marked as 'Admin Created' are processed immediately without student-uploaded ID verification.
                         </p>
-                        <button 
-                            onClick={() => window.open('https://support.google.com/calendar', '_blank')}
-                            className="mt-4 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold uppercase tracking-wider transition-all border border-white/20 relative z-10"
-                        >
-                            View Docs
-                        </button>
                     </div>
 
                     {/* Recent Inquiries Quick Link */}
@@ -1578,7 +1598,7 @@ export default function MedicalRequests() {
                             <h4 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Student Inquiries</h4>
                         </div>
                         <p className="text-xs text-slate-400 mb-4 leading-relaxed">Have questions about medical procedures? Check the inquiries dashboard.</p>
-                        <a href="/inquiries" className="text-[11px] font-black text-blue-500 hover:underline uppercase tracking-widest flex items-center gap-2">
+                        <a href="/inquiries" className="text-[12px] font-black text-blue-500 hover:underline uppercase tracking-widest flex items-center gap-2">
                             Go to Inquiries <ExternalLink size={12} />
                         </a>
                     </div>
@@ -1586,102 +1606,130 @@ export default function MedicalRequests() {
             </div>
 
             {/* Modals */}
-            {viewCert && (
-                <ViewCertRequestModal
-                    request={viewCert}
-                    onClose={() => setViewCert(null)}
-                    onEdit={() => {
-                        setEditCert(viewCert);
-                        setViewCert(null);
-                    }}
-                    onDelete={() => {
-                        setConfirmDelete({ req: viewCert, type: 'CERTS' });
-                        setViewCert(null);
-                    }}
-                    onStatusChange={(status) => {
-                        if (status === 'COMPLETED') {
-                            setCertToProcess(viewCert);
-                            setShowProcessDetails(true);
-                        } else if (status === 'REJECTED') {
-                            setRejectAction({ req: viewCert, type: 'CERTS' });
+            {(() => {
+                const activeCert = viewCert;
+                if (!activeCert) return null;
+                return (
+                    <ViewCertRequestModal
+                        request={activeCert}
+                        onClose={() => setViewCert(null)}
+                        onEdit={() => {
+                            setEditCert(activeCert);
                             setViewCert(null);
-                        } else {
-                            setConfirmAction({ req: viewCert, status, type: 'CERTS' });
-                        }
-                    }}
-                    isSubmitting={isSubmitting}
-                />
-            )}
+                        }}
+                        onDelete={() => {
+                            setConfirmDelete({ req: activeCert, type: 'CERTS' });
+                            setViewCert(null);
+                        }}
+                        onStatusChange={(status) => {
+                            if (status === 'COMPLETED') {
+                                setCertToProcess(activeCert);
+                                setShowProcessDetails(true);
+                            } else if (status === 'REJECTED') {
+                                setRejectAction({ req: activeCert, type: 'CERTS' });
+                                setViewCert(null);
+                            } else {
+                                setConfirmAction({ req: activeCert, status, type: 'CERTS' });
+                            }
+                        }}
+                        isSubmitting={isSubmitting}
+                    />
+                );
+            })()}
 
-            {showProcessDetails && certToProcess && (
-                <CertProcessingModal
-                    onClose={() => setShowProcessDetails(false)}
-                    initialDetails={currentCertDetails}
-                    onGenerate={(details) => {
-                        setCurrentCertDetails(details);
-                        const url = generateMedicalCertPDF(certToProcess, details);
-                        setPreviewCertUrl(url);
-                        setShowProcessDetails(false);
-                    }}
-                />
-            )}
+            {(() => {
+                const processCert = certToProcess;
+                if (!showProcessDetails || !processCert) return null;
+                return (
+                    <CertProcessingModal
+                        onClose={() => setShowProcessDetails(false)}
+                        initialDetails={currentCertDetails}
+                        onGenerate={(details) => {
+                            setCurrentCertDetails(details);
+                            const pdf = generateMedicalCertPDF(processCert, details);
+                            setPreviewCertUrl(pdf.blobUrl);
+                            setPreviewCertBase64(pdf.base64);
+                            setShowProcessDetails(false);
+                        }}
+                    />
+                );
+            })()}
 
-            {previewCertUrl && (
-                <CertPreviewModal
-                    blobUrl={previewCertUrl}
-                    onClose={() => setPreviewCertUrl(null)}
-                    onEdit={() => {
-                        setPreviewCertUrl(null);
-                        setShowProcessDetails(true);
-                    }}
-                    onConfirm={handleFinalizeCert}
-                    isSubmitting={isSubmitting}
-                />
-            )}
+            {(() => {
+                const url = previewCertUrl;
+                if (!url) return null;
+                return (
+                    <CertPreviewModal
+                        blobUrl={url}
+                        onClose={() => setPreviewCertUrl(null)}
+                        onEdit={() => {
+                            setPreviewCertUrl(null);
+                            setShowProcessDetails(true);
+                        }}
+                        onConfirm={handleFinalizeCert}
+                        isSubmitting={isSubmitting}
+                    />
+                );
+            })()}
 
-            {viewMed && (
-                <ViewMedicineRequestModal
-                    request={viewMed}
-                    onClose={() => setViewMed(null)}
-                    onEdit={() => {
-                        setEditMed(viewMed);
-                        setViewMed(null);
-                    }}
-                    onDelete={() => {
-                        setConfirmDelete({ req: viewMed, type: 'MEDS' });
-                        setViewMed(null);
-                    }}
-                    onStatusChange={(status) => {
-                        if (status === 'REJECTED') {
-                            setRejectAction({ req: viewMed, type: 'MEDS' });
+            {(() => {
+                const activeMed = viewMed;
+                if (!activeMed) return null;
+                return (
+                    <ViewMedicineRequestModal
+                        request={activeMed}
+                        onClose={() => setViewMed(null)}
+                        onEdit={() => {
+                            setEditMed(activeMed);
                             setViewMed(null);
-                        } else {
-                            setConfirmAction({ req: viewMed, status, type: 'MEDS' });
-                        }
-                    }}
-                    isSubmitting={isSubmitting}
-                />
-            )}
+                        }}
+                        onDelete={() => {
+                            setConfirmDelete({ req: activeMed, type: 'MEDS' });
+                            setViewMed(null);
+                        }}
+                        onStatusChange={(status) => {
+                            if (status === 'REJECTED') {
+                                setRejectAction({ req: activeMed, type: 'MEDS' });
+                                setViewMed(null);
+                            } else {
+                                setConfirmAction({ req: activeMed, status, type: 'MEDS' });
+                            }
+                        }}
+                        isSubmitting={isSubmitting}
+                    />
+                );
+            })()}
 
-            <ConfirmationDialog
-                isOpen={!!confirmAction && !rejectAction}
-                title="Confirm Action"
-                description={`Are you sure you want to ${confirmAction?.status === 'DISPENSED' ? 'mark this request as dispensed' : confirmAction?.status.toLowerCase() + ' this request'}?`}
-                confirmText={confirmAction?.status === 'DISPENSED' ? "Yes, Dispense" : "Yes, Proceed"}
-                type={confirmAction?.status === 'REJECTED' ? 'danger' : 'info'}
-                isLoading={isSubmitting}
-                onClose={() => setConfirmAction(null)}
-                onConfirm={() => handleUpdateStatus()}
-            />
+            {(() => {
+                const ca = confirmAction;
+                const ra = rejectAction;
+                if (!ca || !!ra) return null;
+                return (
+                    <ConfirmationDialog
+                        isOpen={true}
+                        title="Confirm Action"
+                        description={`Are you sure you want to ${ca.status === 'DISPENSED' ? 'mark this request as dispensed' : ca.status.toLowerCase() + ' this request'}?`}
+                        confirmText={ca.status === 'DISPENSED' ? "Yes, Dispense" : "Yes, Proceed"}
+                        type={ca.status === 'REJECTED' ? 'danger' : 'info'}
+                        isLoading={isSubmitting}
+                        onClose={() => setConfirmAction(null)}
+                        onConfirm={() => handleUpdateStatus()}
+                    />
+                );
+            })()}
 
-            {rejectAction && (
-                <RejectReasonModal
-                    request={rejectAction.req}
-                    onClose={() => setRejectAction(null)}
-                    onConfirm={handleUpdateStatus}
-                    isSubmitting={isSubmitting}
-                />
-            )}
+            {(() => {
+                const ra = rejectAction;
+                if (!ra || !ra.req) return null;
+                return (
+                    <RejectReasonModal
+                        request={ra.req}
+                        onClose={() => setRejectAction(null)}
+                        onConfirm={handleUpdateStatus}
+                        isSubmitting={isSubmitting}
+                    />
+                );
+            })()}
 
             {(showNewRequestModal || editCert) && (
                 <NewCertRequestModal
@@ -1700,7 +1748,8 @@ export default function MedicalRequests() {
                                 setEditCert(null);
                             } else {
                                 await addMedicalCertRequestDB({ ...data, admin_created: true, status: 'PENDING' });
-                                addLog('Admin', `Manually created medical cert request for user ID: ${data.requester_id}`);
+                                const requesterName = users.find(u => u.id === data.requester_id)?.fullName || data.requester_id;
+                                addLog('Admin', `Manually created medical cert request for: ${requesterName}`);
                             }
                             setShowNewRequestModal(false);
                         } catch (e: any) {
@@ -1729,7 +1778,8 @@ export default function MedicalRequests() {
                                 setEditMed(null);
                             } else {
                                 await addMedicineRequestDB({ ...data, admin_created: true, status: 'PENDING' });
-                                addLog('Admin', `Manually created medicine request for user ID: ${data.requester_id}`);
+                                const requesterName = users.find(u => u.id === data.requester_id)?.fullName || data.requester_id;
+                                addLog('Admin', `Manually created medicine request for: ${requesterName}`);
                             }
                             setShowNewMedRequestModal(false);
                         } catch (e: any) {
@@ -1817,7 +1867,7 @@ function NewCertRequestModal({
                             <h2 className="text-xl font-extrabold tracking-tight " style={{ color: 'var(--text-primary)' }}>
                                 {initialData ? 'Edit medical Certificate' : 'New medical Certificate'}
                             </h2>
-                            <p className="text-[10px] font-extrabold uppercase tracking-widest mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                            <p className="text-[11px] font-extrabold uppercase tracking-widest mt-0.5" style={{ color: 'var(--text-muted)' }}>
                                 {initialData ? 'Manage manually created details' : `Step ${step} of 2 • ${step === 1 ? 'Search Student' : 'Upload Documentation'}`}
                             </p>
                         </div>
@@ -1846,7 +1896,7 @@ function NewCertRequestModal({
                             <div className="space-y-2">
                                 <div className="flex items-center gap-2 mb-3 ml-1">
                                     <div className="w-1 h-3 rounded-full bg-blue-500" />
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Search Results</p>
+                                    <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Search Results</p>
                                 </div>
                                 {filteredUsers.length === 0 ? (
                                     <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed rounded-2xl bg-slate-50/50" style={{ borderColor: 'var(--border-light)' }}>
@@ -1871,7 +1921,7 @@ function NewCertRequestModal({
                                                 </div>
                                                 <div>
                                                     <p className="text-sm tracking-tight" style={{ color: 'var(--text-primary)' }}>{u.fullName || `${u.first_name} ${u.last_name}`}</p>
-                                                    <p className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-faint)' }}>ID: {u.studentId || u.student_number}</p>
+                                                    <p className="text-[11px] uppercase tracking-wider" style={{ color: 'var(--text-faint)' }}>ID: {u.studentId || u.student_number}</p>
                                                 </div>
                                             </div>
                                             <ChevronDown size={18} className="-rotate-90 text-slate-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
@@ -1888,14 +1938,14 @@ function NewCertRequestModal({
                                     <User size={22} />
                                 </div>
                                 <div className="flex-1">
-                                    <p className="text-[9px] font-semibold uppercase tracking-widest text-slate-400 mb-0.5">Assigned Requester</p>
+                                    <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-0.5">Assigned Requester</p>
                                     <h4 className="text-sm tracking-tight" style={{ color: 'var(--text-primary)' }}>{selectedUser?.fullName || `${selectedUser?.first_name} ${selectedUser?.last_name}`}</h4>
-                                    <p className="text-[10px]" style={{ color: 'var(--text-faint)' }}>ID: {selectedUser?.studentId || selectedUser?.student_number}</p>
+                                    <p className="text-[11px]" style={{ color: 'var(--text-faint)' }}>ID: {selectedUser?.studentId || selectedUser?.student_number}</p>
                                 </div>
                                 {!initialData && (
                                     <button
                                         onClick={() => setStep(1)}
-                                        className="px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors"
+                                        className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors"
                                     >
                                         Change
                                     </button>
@@ -1906,12 +1956,12 @@ function NewCertRequestModal({
                             <div className="space-y-4">
                                 <div className="flex items-center gap-2 mb-1 ml-1">
                                     <ClipboardList size={14} className="text-blue-500" />
-                                    <h3 className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Documentation Context</h3>
+                                    <h3 className="text-[11px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Documentation Context</h3>
                                 </div>
 
                                 <div className="p-5 rounded-2xl space-y-4 border" style={{ background: 'var(--bg-wash)', borderColor: 'var(--border-light)' }}>
                                     <div className="space-y-1.5">
-                                        <label className="text-[10px] font-bold uppercase tracking-wider ml-1" style={{ color: 'var(--text-muted)' }}>Purpose of Request</label>
+                                        <label className="text-[11px] font-bold uppercase tracking-wider ml-1" style={{ color: 'var(--text-muted)' }}>Purpose of Request</label>
                                         <textarea
                                             value={formData.request_reason}
                                             onChange={(e) => setFormData(p => ({ ...p, request_reason: e.target.value }))}
@@ -1924,7 +1974,7 @@ function NewCertRequestModal({
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1.5">
-                                            <label className="text-[10px] font-bold uppercase tracking-wider ml-1" style={{ color: 'var(--text-muted)' }}>Contact Information</label>
+                                            <label className="text-[11px] font-bold uppercase tracking-wider ml-1" style={{ color: 'var(--text-muted)' }}>Contact Information</label>
                                             <div className="relative">
                                                 <Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                                                 <input
@@ -1937,7 +1987,7 @@ function NewCertRequestModal({
                                             </div>
                                         </div>
                                         <div className="space-y-1.5">
-                                            <label className="text-[10px] font-bold uppercase tracking-wider ml-1" style={{ color: 'var(--text-muted)' }}>Requested Date</label>
+                                            <label className="text-[11px] font-bold uppercase tracking-wider ml-1" style={{ color: 'var(--text-muted)' }}>Requested Date</label>
                                             <div className="relative">
                                                 <Calendar size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                                                 <input
@@ -1957,7 +2007,7 @@ function NewCertRequestModal({
                             <div className="space-y-4">
                                 <div className="flex items-center gap-2 mb-1 ml-1">
                                     <Eye size={14} className="text-blue-500" />
-                                    <h3 className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Identity Verification</h3>
+                                    <h3 className="text-[11px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Identity Verification</h3>
                                 </div>
 
                                 <div className="p-5 rounded-2xl space-y-4 border" style={{ background: 'var(--bg-wash)', borderColor: 'var(--border-light)' }}>
@@ -1976,7 +2026,7 @@ function NewCertRequestModal({
                                                 style={{ borderColor: 'var(--border-light)' }}
                                             >
                                                 <Upload size={20} />
-                                                <span className="text-[10px] font-bold uppercase tracking-wide">
+                                                <span className="text-[11px] font-bold uppercase tracking-wide">
                                                     {formData.uploaded_id_img ? 'Update Identification Image' : 'Click to Upload Valid ID Screenshot'}
                                                 </span>
                                             </label>
@@ -1998,7 +2048,7 @@ function NewCertRequestModal({
                     {step === 2 && !initialData && (
                         <button
                             onClick={() => setStep(1)}
-                            className="flex-1 py-3.5 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all active:scale-95 shadow-sm"
+                            className="flex-1 py-3.5 rounded-xl text-[12px] font-bold uppercase tracking-wider transition-all active:scale-95 shadow-sm"
                             style={{ background: 'var(--card-bg)', border: '1px solid var(--border-light)', color: 'var(--text-secondary)' }}
                         >
                             Back

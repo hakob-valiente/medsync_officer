@@ -81,14 +81,14 @@ export function ConfirmationDialog({
           </div>
           
           <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>{title}</h3>
-          <p className="leading-relaxed text-sm" style={{ color: 'var(--text-secondary)' }}>{description}</p>
+          <p className="leading-relaxed text-[15px]" style={{ color: 'var(--text-secondary)' }}>{description}</p>
         </div>
         
         <div className="p-6 flex gap-3" style={{ background: 'var(--bg-wash)' }}>
           <button
             onClick={onClose}
             disabled={isLoading}
-            className="flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all disabled:opacity-50"
+            className="flex-1 py-3 px-4 rounded-xl text-[15px] font-semibold transition-all disabled:opacity-50"
             style={{
               color: 'var(--text-secondary)',
               background: 'var(--card-bg)',
@@ -100,7 +100,7 @@ export function ConfirmationDialog({
           <button
             onClick={onConfirm}
             disabled={isLoading}
-            className="flex-1 py-3 px-4 rounded-xl text-sm font-semibold text-white transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1 py-3 px-4 rounded-xl text-[15px] font-semibold text-white transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
             style={getButtonStyle()}
           >
             {isLoading ? (
@@ -112,3 +112,4 @@ export function ConfirmationDialog({
     </div>
   );
 }
+

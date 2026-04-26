@@ -190,6 +190,7 @@ export default function Inventory() {
     const [editItem, setEditItem] = useState<InventoryItem | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
+    const [isRequestsOpen, setIsRequestsOpen] = useState(true);
 
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
@@ -575,12 +576,13 @@ export default function Inventory() {
             </div>
 
             {/* Dashboard Content Split View */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Main Layout Container: Inventory + Sliding Plate */}
+            <div className="flex flex-col lg:flex-row gap-6 relative h-full items-start overflow-visible">
 
                 {/* Left Column: Inventory List */}
-                <div className="lg:col-span-8 space-y-6">
+                <div className="flex-1 min-w-0 space-y-6 transition-all duration-500">
                     {viewMode === 'table' ? (
-                        <div className="rounded-2xl shadow-sm overflow-hidden flex flex-col min-h-[500px]" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
+                        <div className="mobile-card-table rounded-2xl shadow-sm overflow-hidden flex flex-col min-h-[500px]" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
                             <div className="flex-1 overflow-x-auto">
                                 <table className="w-full zebra-table">
                                     <thead>
@@ -614,7 +616,7 @@ export default function Inventory() {
                                         ) : (
                                             paginatedInventory.map(item => (
                                                 <tr key={item.id} className="transition-colors group text-sm" style={{ borderBottom: '1px solid var(--border-light)' }}>
-                                                    <td className="px-6 py-4">
+                                                    <td data-label="Item" className="px-6 py-4">
                                                         <div className="flex items-center gap-3">
                                                             <div className="w-8 h-8 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110"
                                                                 style={{
@@ -628,10 +630,10 @@ export default function Inventory() {
                                                             <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{item.item_name}</span>
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4">
+                                                    <td data-label="Campus" className="px-6 py-4">
                                                         <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{item.campus || 'Main'}</span>
                                                     </td>
-                                                    <td className="px-6 py-4">
+                                                    <td data-label="Quantity" className="px-6 py-4">
                                                         <div className="flex flex-col">
                                                             <span className={`font-medium ${item.quantity < 20 ? 'text-red-500' : ''}`} style={{ color: item.quantity >= 20 ? 'var(--text-primary)' : undefined }}>
                                                                 {item.quantity} / {getAvailableQuantity(item.item_name, item.quantity)}
@@ -639,17 +641,17 @@ export default function Inventory() {
                                                             <span className="text-[9px] font-medium uppercase tracking-wider opacity-60" style={{ color: 'var(--text-muted)' }}>{item.unit_measure}</span>
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4">
+                                                    <td data-label="Status" className="px-6 py-4">
                                                         <span className={`text-[9px] font-medium uppercase tracking-widest px-2.5 py-1 rounded-full border ${item.status === 'Available' ? 'bg-green-50 text-green-600 border-green-100' :
                                                             item.status === 'Expired' ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-red-50 text-red-500 border-red-100'
                                                             }`}>
                                                             {item.status}
                                                         </span>
                                                     </td>
-                                                    <td className="px-6 py-4">
+                                                    <td data-label="Expiry" className="px-6 py-4">
                                                         <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{item.expiry_date || 'N/A'}</span>
                                                     </td>
-                                                    <td className="px-6 py-4 text-right">
+                                                    <td data-label="Actions" className="px-6 py-4 text-right">
                                                         <div className="flex items-center justify-end gap-2">
                                                             <button
                                                                 onClick={() => {
@@ -798,22 +800,57 @@ export default function Inventory() {
                     )}
                 </div>
 
-                {/* Right Column: Medicine Requests Table */}
-                <div className="lg:col-span-4 space-y-4">
-                    <div className="rounded-3xl shadow-sm overflow-hidden flex flex-col h-full max-h-[800px]" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
-                        <div className="p-5 border-b flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--warning-bg)', color: 'var(--warning)' }}>
-                                    <Clock size={16} />
+                {/* Right Side Slide-out Panel (Folded State) */}
+                <div
+                    className={`fixed lg:relative top-0 right-0 h-[calc(100vh-100px)] lg:h-[800px] z-40 flex transition-all duration-500 ease-in-out ${isRequestsOpen ? 'w-full lg:w-[450px]' : 'w-0 lg:w-[64px]'}`}
+                >
+                    {/* Collapsed Handle / Vertical Tab (Only when closed) */}
+                    {!isRequestsOpen && (
+                        <button
+                            onClick={() => setIsRequestsOpen(true)}
+                            className="hidden lg:flex absolute inset-0 rounded-l-3xl flex-col items-center justify-start pt-4 shadow-2xl transition-all hover:bg-slate-50 group overflow-hidden z-50 focus:outline-none"
+                            style={{ background: 'var(--card-bg)', borderLeft: '1px solid var(--border-light)' }}
+                            title="Expand Requests Panel"
+                        >
+                            <div className="flex flex-col items-center gap-2">
+                                <ChevronDown size={20} className="-rotate-90 text-slate-400 group-hover:translate-x-1 transition-transform opacity-70" />
+                                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center animate-pulse shadow-sm">
+                                    <Pill size={20} />
                                 </div>
-                                <h3 className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>Medicine Requests</h3>
+                                <div className="rotate-90 whitespace-nowrap text-[9px] font-black uppercase tracking-[0.5em] text-slate-500 group-hover:text-emerald-600 transition-colors mt-16">
+                                    Medical Requests
+                                </div>
                             </div>
-                            <span className="text-[10px] font-medium px-2 py-1 rounded-lg" style={{ background: 'var(--warning-bg)', color: 'var(--warning)' }}>
-                                {medicineRequests.filter(r => r.status?.toUpperCase() === 'PENDING').length} PENDING
-                            </span>
+                        </button>
+                    )}
+
+                    {/* Actual Panel Content */}
+                    <div className={`w-full h-full flex flex-col overflow-hidden rounded-l-3xl shadow-2xl border-l transition-all duration-500 ease-in-out ${isRequestsOpen ? 'translate-x-0 opacity-100 visible' : 'translate-x-full opacity-0 invisible'}`} style={{ background: 'var(--card-bg)', borderColor: 'var(--border-light)' }}>
+                        <div className="p-6 border-b flex items-center justify-between bg-slate-50/50" style={{ borderColor: 'var(--border-light)' }}>
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-inner">
+                                    <Pill size={20} />
+                                </div>
+                                <div>
+                                    <h4 className="text-sm font-black uppercase tracking-widest" style={{ color: 'var(--text-primary)' }}>Student Requests</h4>
+                                    <p className="text-[10px] font-bold text-slate-400">Queue for Dispatch</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold px-2 py-1 rounded-lg" style={{ background: 'var(--warning-bg)', color: 'var(--warning)' }}>
+                                    {medicineRequests.filter(r => r.status?.toUpperCase() === 'PENDING').length} PENDING
+                                </span>
+                                <button
+                                    onClick={() => setIsRequestsOpen(false)}
+                                    className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-all text-slate-400"
+                                    title="Fold Panel"
+                                >
+                                    <ChevronDown size={20} className="-rotate-90" />
+                                </button>
+                            </div>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
                             {(() => {
                                 const activeRequests = medicineRequests.filter(r => ['PENDING', 'ACCEPTED'].includes(r.status?.toUpperCase() || ''));
                                 const totalRequestsPages = Math.ceil(activeRequests.length / requestsPerPage);
@@ -830,7 +867,7 @@ export default function Inventory() {
 
                                 return (
                                     <>
-                                        <div className="space-y-3 flex-1">
+                                        <div className="space-y-3">
                                             {paginatedRequests.map(req => (
                                                 <div key={req.id} className="rounded-2xl p-4 space-y-3 transition-all" style={{ background: 'var(--bg-wash)', border: '1px solid var(--border-light)' }}>
                                                     <div className="flex items-start justify-between">
@@ -919,6 +956,15 @@ export default function Inventory() {
                                     </>
                                 );
                             })()}
+                            <div className="p-5 border-t bg-slate-50/10" style={{ borderColor: 'var(--border-light)' }}>
+                                <a
+                                    href="/requests"
+                                    className="block w-full py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-center border transition-all hover:bg-white hover:shadow-lg"
+                                    style={{ borderColor: 'var(--border-light)', color: 'var(--text-secondary)' }}
+                                >
+                                    View Global Requests Repo
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>

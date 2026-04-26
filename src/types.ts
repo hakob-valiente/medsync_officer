@@ -30,6 +30,7 @@ export interface SystemUser {
     created_at: string;
     updated_at?: string;
     status: UserStatus;
+    profile_picture_url?: string;
 
     // UI conveniences (either stored or computed on the frontend)
     fullName: string;
@@ -177,6 +178,7 @@ export interface Appointment {
     // UI convenience
     requester_name?: string;
     requester_student_number?: string;
+    profiles?: SystemUser;
 }
 
 export interface AcceptedAppointment {
@@ -192,6 +194,7 @@ export interface AcceptedAppointment {
     requester_student_number?: string;
     contact_number?: string;
     visit_reason?: string;
+    profiles?: SystemUser;
 }
 
 export interface SystemLog {
@@ -212,6 +215,30 @@ export interface Inquiry {
     inquirer_name?: string;
     inquirer_student_number?: string;
     inquirer_email?: string;
+}
+
+export interface MealLog {
+    id: string;
+    requester_id: string;
+    food_name: string;
+    calories: number;
+    protein?: number;
+    carbs?: number;
+    fats?: number;
+    meal_type: string;
+    portion_size?: string;
+    health_summary?: string;
+    created_at: string;
+}
+
+export interface RunLog {
+    id: string;
+    requester_id: string;
+    distance_km: number;
+    duration_seconds: number;
+    calories_burned?: number;
+    avg_pace?: string;
+    created_at: string;
 }
 
 export interface HealthAdvisory {
@@ -257,4 +284,6 @@ export interface AppState {
     inquiries: Inquiry[];
     notifications: AppNotification[];
     readNotificationIds: string[];
+    runLogs: RunLog[];
+    mealLogs: MealLog[];
 }

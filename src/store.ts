@@ -1,4 +1,4 @@
-import type { AppState, SystemUser, Officer, CampusRecord, InventoryItem, Request, VisitRecord, Clinic, AcceptedAppointment, HealthAdvisory } from './types';
+import type { AppState, SystemUser, Officer, CampusRecord, InventoryItem, Request, VisitRecord, Clinic, AcceptedAppointment, HealthAdvisory, RunLog, MealLog } from './types';
 import { supabase } from './lib/supabase';
 
 // =====================
@@ -39,7 +39,9 @@ function getInitialState(): AppState {
         advisories: [],
         inquiries: [],
         notifications: [],
-        readNotificationIds: []
+        readNotificationIds: [],
+        runLogs: [],
+        mealLogs: []
     };
 
     try {
@@ -86,6 +88,8 @@ function setupRealtimeSubscriptions() {
             case 'accepted_appointments': fetchAcceptedAppointmentsFromDB(); break;
             case 'inquiries': fetchInquiriesFromDB(); break;
             case 'notifications': fetchNotificationsFromDB(); break;
+            case 'run_logs': fetchRunLogsFromDB(); break;
+            case 'meal_logs': fetchMealLogsFromDB(); break;
             case 'admin_notification_reads': {
                 fetchAdminReadNotificationsFromDB();
                 break;
@@ -170,6 +174,8 @@ fetchUsersFromDB();
 
 // Try to fetch read states if possible
 fetchAdminReadNotificationsFromDB();
+fetchRunLogsFromDB();
+fetchMealLogsFromDB();
 
 // =====================
 // HELPER GENERATORS
@@ -231,9 +237,9 @@ export async function fetchNotificationsFromDB() {
         const { data, error } = await supabase
             .from('notifications')
             .select('*')
-            .eq('target_type', 'ADMIN')
+            .or('target_type.eq.ADMIN,target_type.eq.OFFICER')
             .order('created_at', { ascending: false })
-            .limit(100);
+            .limit(1000);
 
         if (error) throw error;
         if (data) {
@@ -363,6 +369,7 @@ export async function fetchUsersFromDB() {
                         id_back_url: row.id_back_url,
                         ocr_raw_front: row.ocr_raw_front,
                         ocr_raw_back: row.ocr_raw_back,
+                        profile_picture_url: row.profile_picture_url,
                         created_at: row.created_at || new Date().toISOString(),
                         updated_at: row.updated_at,
                         status: row.status || 'pending',
@@ -804,6 +811,30 @@ export async function updateRequestDB(id: string, updates: any) {
     }
 }
 
+export async function fetchRunLogsFromDB() {
+    try {
+        const { data, error } = await supabase.from('run_logs').select('*');
+        if (error) throw error;
+        if (data) {
+            store.setState(prev => ({ ...prev, runLogs: data as RunLog[] }));
+        }
+    } catch (e) {
+        console.error('Error fetching run logs:', e);
+    }
+}
+
+export async function fetchMealLogsFromDB() {
+    try {
+        const { data, error } = await supabase.from('meal_logs').select('*');
+        if (error) throw error;
+        if (data) {
+            store.setState(prev => ({ ...prev, mealLogs: data as MealLog[] }));
+        }
+    } catch (e) {
+        console.error('Error fetching meal logs:', e);
+    }
+}
+
 // ---- Medical Certificate Requests DB Actions ----
 
 export async function fetchMedicalCertRequestsFromDB() {
@@ -1122,12 +1153,17 @@ export async function fetchAppointmentsFromDB() {
     try {
         const { data, error } = await supabase
             .from('appointments')
-            .select('*, profiles(first_name, last_name, suffix, student_number)')
+            .select('*, profiles(first_name, last_name, suffix, student_number, profile_picture_url)')
             .order('request_timestamp', { ascending: false });
         if (error) throw error;
         if (data) {
             const mapped = data.map((row: any) => ({
                 ...row,
+                profiles: row.profiles ? {
+                    ...row.profiles,
+                    fullName: [row.profiles.first_name, row.profiles.last_name, row.profiles.suffix].filter(Boolean).join(' '),
+                    studentId: row.profiles.student_number || 'N/A'
+                } : undefined,
                 requester_name: row.profiles 
                     ? [row.profiles.first_name, row.profiles.last_name, row.profiles.suffix].filter(Boolean).join(' ')
                     : 'Unknown requester',
@@ -1150,7 +1186,7 @@ export async function fetchAcceptedAppointmentsFromDB() {
         
         const { data, error } = await supabase
             .from('accepted_appointments')
-            .select('*, appointments(contact_number, visit_reason, category), profiles(first_name, last_name, suffix, student_number, contact_number)')
+            .select('*, appointments(contact_number, visit_reason, category), profiles(first_name, last_name, suffix, student_number, contact_number, profile_picture_url)')
             .order('appointment_sched', { ascending: true });
         
         if (error) throw error;
@@ -1170,6 +1206,11 @@ export async function fetchAcceptedAppointmentsFromDB() {
                 
                 return {
                     ...row,
+                    profiles: row.profiles ? {
+                        ...row.profiles,
+                        fullName: [row.profiles.first_name, row.profiles.last_name, row.profiles.suffix].filter(Boolean).join(' '),
+                        studentId: row.profiles.student_number || 'N/A'
+                    } : undefined,
                     requester_name: row.profiles 
                         ? [row.profiles.first_name, row.profiles.last_name, row.profiles.suffix].filter(Boolean).join(' ')
                         : 'Unknown requester',

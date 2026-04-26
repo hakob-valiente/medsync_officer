@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { X, Loader2, Clock, AlignLeft, Trash2 } from 'lucide-react';
+import { useState, useRef, useMemo } from 'react';
+import { X, Loader2, Clock, AlignLeft, Trash2, Calendar } from 'lucide-react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -8,8 +8,10 @@ import googleCalendarPlugin from '@fullcalendar/google-calendar';
 import { supabase } from '../lib/supabase';
 import { Check } from 'lucide-react';
 import { ConfirmationDialog } from './ui/ConfirmationDialog';
+import { useStore } from '../hooks/useStore';
 
 export function CalendarWidget() {
+    const { acceptedAppointments } = useStore();
     const calendarRef = useRef<FullCalendar>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -155,6 +157,40 @@ export function CalendarWidget() {
         setSelectedEventId(null);
     };
 
+    const plugins = useMemo(() => [dayGridPlugin, timeGridPlugin, interactionPlugin, googleCalendarPlugin], []);
+    const headerToolbar = useMemo(() => ({
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,timeGridWeek,timeGridDay'
+    }), []);
+
+    const localEvents = useMemo(() => {
+        return acceptedAppointments.map(app => ({
+            id: `local-${app.id}`,
+            title: `${app.requester_name} (${app.category})`,
+            start: app.appointment_sched,
+            // default to 30 mins if end not specified
+            end: new Date(new Date(app.appointment_sched).getTime() + 30 * 60000).toISOString(),
+            extendedProps: {
+                ...app,
+                isLocal: true
+            },
+            backgroundColor: (app.category || '').toLowerCase().includes('dental') ? '#3b82f6' : '#10b981',
+            borderColor: (app.category || '').toLowerCase().includes('dental') ? '#2563eb' : '#059669',
+        }));
+    }, [acceptedAppointments]);
+
+    const eventSources = useMemo(() => [
+        {
+            googleCalendarId: GOOGLE_CALENDAR_ID,
+            className: 'google-event'
+        },
+        {
+            events: localEvents,
+            className: 'local-appointment'
+        }
+    ], [GOOGLE_CALENDAR_ID, localEvents]);
+
     return (
         <div className="calendar-widget-card p-5 transition-all duration-300 w-full flex flex-col h-full bg-white rounded-2xl border shadow-sm">
             <div className="flex items-center justify-between gap-3 mb-4 shrink-0">
@@ -173,17 +209,11 @@ export function CalendarWidget() {
             <div className="calendar-container overflow-auto relative flex-1" style={{ minHeight: '500px' }}>
                 <FullCalendar
                     ref={calendarRef}
-                    plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, googleCalendarPlugin]}
+                    plugins={plugins}
                     initialView="dayGridMonth"
-                    headerToolbar={{
-                        left: 'prev,next today',
-                        center: 'title',
-                        right: 'dayGridMonth,timeGridWeek,timeGridDay'
-                    }}
+                    headerToolbar={headerToolbar}
                     googleCalendarApiKey={GOOGLE_API_KEY}
-                    events={{
-                        googleCalendarId: GOOGLE_CALENDAR_ID
-                    }}
+                    eventSources={eventSources}
                     eventColor="#0d9488"
                     eventTextColor="#ffffff"
                     selectable={true}
@@ -192,6 +222,8 @@ export function CalendarWidget() {
                     select={handleDateSelect}
                     eventClick={handleEventClick}
                     height="100%"
+                    slotLabelFormat={{ hour: 'numeric', minute: '2-digit', hour12: true }}
+                    eventTimeFormat={{ hour: 'numeric', minute: '2-digit', hour12: true }}
                 />
             </div>
 
@@ -238,7 +270,7 @@ export function CalendarWidget() {
                             {/* Title Input */}
                             <div className="pt-2">
                                 <input 
-                                    className="w-full text-[22px] text-slate-800 placeholder-slate-500 border-b-2 border-transparent hover:border-slate-200 focus:border-[#1a73e8] outline-none transition-colors pb-1 bg-transparent"
+                                    className="w-full text-[23px] text-slate-800 placeholder-slate-500 border-b-2 border-transparent hover:border-slate-200 focus:border-[#1a73e8] outline-none transition-colors pb-1 bg-transparent"
                                     placeholder="Add title"
                                     value={formData.title}
                                     onChange={e => setFormData(p => ({ ...p, title: e.target.value }))}
@@ -252,27 +284,84 @@ export function CalendarWidget() {
                                 <button type="button" className="px-3 py-1.5 hover:bg-slate-100 text-slate-600 text-sm font-medium rounded-md transition-colors">Task</button>
                             </div>
 
-                            {/* Time Selectors */}
-                            <div className="flex items-center gap-4 text-sm text-slate-700 mt-6">
-                                <div className="w-5 flex justify-center text-slate-400">
-                                    <Clock size={20} />
+                            {/* Date Selector */}
+                            <div className="flex items-start gap-3 text-sm text-slate-700 mt-6">
+                                <div className="w-5 flex justify-center text-slate-400 mt-2.5">
+                                    <Calendar size={18} />
                                 </div>
-                                <div className="flex-1 flex gap-2 items-center">
-                                    <input 
-                                        type="datetime-local" 
-                                        required 
-                                        className="py-1 px-2 hover:bg-slate-100 rounded outline-none border-b-2 border-transparent focus:border-[#1a73e8] transition-colors cursor-pointer"
-                                        value={formData.startTime}
-                                        onChange={e => setFormData(p => ({ ...p, startTime: e.target.value }))}
+                                <div className="flex-1">
+                                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Date</label>
+                                    <input
+                                        type="date"
+                                        required
+                                        className="w-full py-2 px-3 bg-slate-50 hover:bg-slate-100 rounded-lg outline-none border border-slate-200 focus:border-[#1a73e8] transition-colors text-sm font-medium text-slate-700"
+                                        value={formData.startTime ? formData.startTime.slice(0, 10) : ''}
+                                        onChange={e => {
+                                            const date = e.target.value;
+                                            const startTime = formData.startTime?.slice(11) || '08:00';
+                                            const endTime = formData.endTime?.slice(11) || '09:00';
+                                            setFormData(p => ({
+                                                ...p,
+                                                startTime: date + 'T' + startTime,
+                                                endTime: date + 'T' + endTime
+                                            }));
+                                        }}
                                     />
-                                    <span>to</span>
-                                    <input 
-                                        type="datetime-local" 
-                                        required 
-                                        className="py-1 px-2 hover:bg-slate-100 rounded outline-none border-b-2 border-transparent focus:border-[#1a73e8] transition-colors cursor-pointer"
-                                        value={formData.endTime}
-                                        onChange={e => setFormData(p => ({ ...p, endTime: e.target.value }))}
-                                    />
+                                </div>
+                            </div>
+
+                            {/* Time Selectors */}
+                            <div className="flex items-start gap-3 text-sm text-slate-700 mt-4">
+                                <div className="w-5 flex justify-center text-slate-400 mt-2.5">
+                                    <Clock size={18} />
+                                </div>
+                                <div className="flex-1 grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Start Time</label>
+                                        <input
+                                            type="time"
+                                            required
+                                            className="w-full py-2 px-3 bg-slate-50 hover:bg-slate-100 rounded-lg outline-none border border-slate-200 focus:border-[#1a73e8] transition-colors text-sm font-medium text-slate-700"
+                                            value={formData.startTime ? formData.startTime.slice(11, 16) : ''}
+                                            onChange={e => {
+                                                const date = formData.startTime?.slice(0, 10) || new Date().toISOString().slice(0, 10);
+                                                setFormData(p => ({ ...p, startTime: date + 'T' + e.target.value }));
+                                            }}
+                                        />
+                                        {formData.startTime?.slice(11, 16) && (
+                                            <p className="text-[10px] font-semibold mt-1 text-slate-400">
+                                                {(() => {
+                                                    const [h, m] = (formData.startTime.slice(11, 16)).split(':').map(Number);
+                                                    const ampm = h >= 12 ? 'PM' : 'AM';
+                                                    const h12 = h % 12 || 12;
+                                                    return `${h12}:${m.toString().padStart(2,'0')} ${ampm}`;
+                                                })()}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">End Time</label>
+                                        <input
+                                            type="time"
+                                            required
+                                            className="w-full py-2 px-3 bg-slate-50 hover:bg-slate-100 rounded-lg outline-none border border-slate-200 focus:border-[#1a73e8] transition-colors text-sm font-medium text-slate-700"
+                                            value={formData.endTime ? formData.endTime.slice(11, 16) : ''}
+                                            onChange={e => {
+                                                const date = formData.endTime?.slice(0, 10) || formData.startTime?.slice(0, 10) || new Date().toISOString().slice(0, 10);
+                                                setFormData(p => ({ ...p, endTime: date + 'T' + e.target.value }));
+                                            }}
+                                        />
+                                        {formData.endTime?.slice(11, 16) && (
+                                            <p className="text-[10px] font-semibold mt-1 text-slate-400">
+                                                {(() => {
+                                                    const [h, m] = (formData.endTime.slice(11, 16)).split(':').map(Number);
+                                                    const ampm = h >= 12 ? 'PM' : 'AM';
+                                                    const h12 = h % 12 || 12;
+                                                    return `${h12}:${m.toString().padStart(2,'0')} ${ampm}`;
+                                                })()}
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                             
@@ -337,13 +426,14 @@ export function CalendarWidget() {
             {/* Adding basic overrides to match PLV interface */}
             <style>{`
                 .fc { font-family: inherit; }
-                .fc-toolbar-title { font-size: 1.1rem !important; font-weight: 700 !important; color: var(--text-primary); }
-                .fc .fc-button-primary { background-color: var(--bg-wash) !important; border-color: var(--border-light) !important; color: var(--text-primary) !important; text-transform: capitalize; font-size: 0.8rem; font-weight: 600; box-shadow: none !important; }
+                .fc-toolbar-title { font-size: 1.15rem !important; font-weight: 700 !important; color: var(--text-primary); }
+                .fc .fc-button-primary { background-color: var(--bg-wash) !important; border-color: var(--border-light) !important; color: var(--text-primary) !important; text-transform: capitalize; font-size: 0.85rem; font-weight: 600; box-shadow: none !important; }
                 .fc .fc-button-active { background-color: var(--accent) !important; color: white !important; border-color: var(--accent) !important; }
-                .fc-theme-standard th { background: var(--bg-wash); padding: 4px 0; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: var(--text-secondary); }
-                .fc-daygrid-day-number { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); }
+                .fc-theme-standard th { background: var(--bg-wash); padding: 4px 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: var(--text-secondary); }
+                .fc-daygrid-day-number { font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); }
                 .fc-event { cursor: pointer; transition: opacity 0.2s; }
                 .fc-event:hover { opacity: 0.9; }
+                .fc-timegrid-slot-label { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); }
             `}</style>
         </div>
     );

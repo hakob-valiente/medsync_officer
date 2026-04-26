@@ -2,14 +2,16 @@ import { useState } from 'react';
 import { X, User, Hash, GraduationCap, MapPin, Droplets, Info, ChevronDown } from 'lucide-react';
 
 const PLV_COURSES = [
-    "Bachelor of Science in Information Technology",
-    "Bachelor of Science in Computer Science",
-    "Bachelor of Science in Business Administration",
-    "Bachelor of Science in Hospitality Management",
-    "Bachelor of Science in Accountancy",
-    "Bachelor of Science in Psychology",
+    "BS Information Technology",
+    "BS Accountancy",
+    "BS Business Administration",
+    "BS Public Administration",
     "Bachelor of Elementary Education",
-    "Bachelor of Secondary Education"
+    "Bachelor of Secondary Education",
+    "BS Psychology",
+    "BS Social Work",
+    "BS Mathematics",
+    "BA Communication"
 ];
 
 const BARANGAYS = [
@@ -81,7 +83,7 @@ export function UserFormModal({ user, onClose, onSave, isSubmitting }: {
                         </div>
                         <div>
                             <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{user ? 'Edit Patient Record' : 'Register New Patient'}</h2>
-                            <p className="text-[10px] uppercase font-bold tracking-widest opacity-60 mt-0.5" style={{ color: 'var(--text-muted)' }}>Medical Database Entry</p>
+                            <p className="text-[11px] uppercase font-bold tracking-widest opacity-60 mt-0.5" style={{ color: 'var(--text-muted)' }}>Medical Database Entry</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-2 rounded-xl transition-colors hover:bg-black/5" style={{ color: 'var(--text-muted)' }}>
@@ -100,44 +102,44 @@ export function UserFormModal({ user, onClose, onSave, isSubmitting }: {
                         
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                             <div className="md:col-span-1">
-                                <label className="block text-[9px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>First Name</label>
+                                <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>First Name</label>
                                 <input required value={form.first_name} onChange={(e) => setForm(p => ({ ...p, first_name: e.target.value }))} className="w-full bg-white rounded-lg px-3.5 py-2.5 text-xs font-semibold outline-none border focus:border-blue-400 transition-colors shadow-sm" style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }} />
                             </div>
                             <div className="md:col-span-1">
-                                <label className="block text-[9px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Middle Name</label>
+                                <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Middle Name</label>
                                 <input value={form.middle_name} onChange={(e) => setForm(p => ({ ...p, middle_name: e.target.value }))} className="w-full bg-white rounded-lg px-3.5 py-2.5 text-xs font-semibold outline-none border focus:border-blue-400 transition-colors shadow-sm" style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }} />
                             </div>
                             <div className="md:col-span-1">
-                                <label className="block text-[9px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Last Name</label>
+                                <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Last Name</label>
                                 <input required value={form.last_name} onChange={(e) => setForm(p => ({ ...p, last_name: e.target.value }))} className="w-full bg-white rounded-lg px-3.5 py-2.5 text-xs font-semibold outline-none border focus:border-blue-400 transition-colors shadow-sm" style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }} />
                             </div>
                             <div className="md:col-span-1">
-                                <label className="block text-[9px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Suffix</label>
+                                <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Suffix</label>
                                 <input placeholder="e.g. Jr., III" value={form.suffix} onChange={(e) => setForm(p => ({ ...p, suffix: e.target.value }))} className="w-full bg-white rounded-lg px-3.5 py-2.5 text-xs font-semibold outline-none border focus:border-blue-400 transition-colors shadow-sm" style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }} />
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div>
-                                <label className="block text-[9px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Student Number</label>
+                                <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Student Number</label>
                                 <div className="relative">
                                     <Hash size={14} className="absolute left-3 top-1/2 -translate-y-1/2 opacity-40" style={{ color: 'var(--text-muted)' }} />
                                     <input required placeholder="XX-XXXX" value={form.student_number} onChange={(e) => setForm(p => ({ ...p, student_number: e.target.value }))} className="w-full bg-white rounded-lg pl-9 pr-3.5 py-2.5 text-xs font-semibold outline-none border focus:border-blue-400 transition-colors shadow-sm" style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }} />
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-[9px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Email Address</label>
+                                <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Email Address</label>
                                 <input required type="email" placeholder="student@plv.edu.ph" value={form.email} onChange={(e) => setForm(p => ({ ...p, email: e.target.value }))} className="w-full bg-white rounded-lg px-3.5 py-2.5 text-xs font-semibold outline-none border focus:border-blue-400 transition-colors shadow-sm" style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }} />
                             </div>
                             <div>
-                                <label className="block text-[9px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Birthdate</label>
+                                <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Birthdate</label>
                                 <input required type="date" value={form.birthdate} onChange={(e) => setForm(p => ({ ...p, birthdate: e.target.value }))} className="w-full bg-white rounded-lg px-3.5 py-2.5 text-xs font-semibold outline-none border focus:border-blue-400 transition-colors shadow-sm" style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }} />
                             </div>
                             <div>
-                                <label className="block text-[9px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Sex</label>
+                                <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Sex</label>
                                 <div className="grid grid-cols-2 gap-2">
                                     {['Male', 'Female'].map(s => (
-                                        <button key={s} type="button" onClick={() => setForm(p => ({ ...p, gender: s }))} className="py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider border shadow-sm transition-all"
+                                        <button key={s} type="button" onClick={() => setForm(p => ({ ...p, gender: s }))} className="py-2.5 rounded-lg text-[11px] font-bold uppercase tracking-wider border shadow-sm transition-all"
                                             style={{ 
                                                 background: form.gender === s ? 'var(--accent)' : 'white', 
                                                 borderColor: form.gender === s ? 'var(--accent)' : 'var(--border)', 
@@ -160,7 +162,7 @@ export function UserFormModal({ user, onClose, onSave, isSubmitting }: {
 
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div className="md:col-span-2">
-                                <label className="block text-[9px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Course</label>
+                                <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Course</label>
                                 <div className="relative">
                                     <GraduationCap size={14} className="absolute left-3 top-1/2 -translate-y-1/2 opacity-40" style={{ color: 'var(--text-muted)' }} />
                                     <select required value={form.course} onChange={(e) => setForm(p => ({ ...p, course: e.target.value }))} className="w-full appearance-none bg-white rounded-lg pl-9 pr-9 py-2.5 text-xs font-semibold outline-none border focus:border-blue-400 shadow-sm" style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}>
@@ -171,7 +173,7 @@ export function UserFormModal({ user, onClose, onSave, isSubmitting }: {
                                 </div>
                             </div>
                             <div className="md:col-span-1">
-                                <label className="block text-[9px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Year Level</label>
+                                <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Year Level</label>
                                 <div className="relative">
                                     <select required value={form.year_level} onChange={(e) => setForm(p => ({ ...p, year_level: e.target.value }))} className="w-full appearance-none bg-white rounded-lg px-3.5 py-2.5 pr-9 text-xs font-semibold outline-none border focus:border-blue-400 shadow-sm" style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}>
                                         {["1st Year", "2nd Year", "3rd Year", "4th Year"].map(y => <option key={y} value={y}>{y}</option>)}
@@ -180,7 +182,7 @@ export function UserFormModal({ user, onClose, onSave, isSubmitting }: {
                                 </div>
                             </div>
                             <div className="md:col-span-1">
-                                <label className="block text-[9px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Section</label>
+                                <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Section</label>
                                 <div className="relative">
                                     <select required value={form.section} onChange={(e) => setForm(p => ({ ...p, section: e.target.value }))} className="w-full appearance-none bg-white rounded-lg px-3.5 py-2.5 pr-9 text-xs font-semibold outline-none border focus:border-blue-400 shadow-sm" style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}>
                                         {SECTIONS.map(s => <option key={s} value={s}>{s}</option>)}
@@ -200,7 +202,7 @@ export function UserFormModal({ user, onClose, onSave, isSubmitting }: {
 
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                             <div>
-                                <label className="block text-[9px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Blood Type</label>
+                                <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Blood Type</label>
                                 <div className="relative">
                                     <Droplets size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-red-400" />
                                     <select value={form.blood_type} onChange={(e) => setForm(p => ({ ...p, blood_type: e.target.value }))} className="w-full appearance-none bg-white rounded-lg pl-9 pr-9 py-2.5 text-xs font-semibold outline-none border focus:border-blue-400 shadow-sm" style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}>
@@ -210,24 +212,24 @@ export function UserFormModal({ user, onClose, onSave, isSubmitting }: {
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-[9px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Height (cm)</label>
+                                <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Height (cm)</label>
                                 <input type="number" step="0.1" value={form.height_cm} onChange={(e) => setForm(p => ({ ...p, height_cm: e.target.value }))} className="w-full bg-white rounded-lg px-3.5 py-2.5 text-xs font-semibold outline-none border focus:border-blue-400 shadow-sm" style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }} />
                             </div>
                             <div>
-                                <label className="block text-[9px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Weight (kg)</label>
+                                <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Weight (kg)</label>
                                 <input type="number" step="0.1" value={form.weight_kg} onChange={(e) => setForm(p => ({ ...p, weight_kg: e.target.value }))} className="w-full bg-white rounded-lg px-3.5 py-2.5 text-xs font-semibold outline-none border focus:border-blue-400 shadow-sm" style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }} />
                             </div>
                             <div className="flex flex-col justify-end">
                                 <label className="flex items-center justify-center gap-2 cursor-pointer py-2.5 bg-white rounded-lg border shadow-sm hover:bg-slate-50 transition-all" style={{ borderColor: 'var(--border)' }}>
                                     <input type="checkbox" checked={form.ispwd} onChange={(e) => setForm(p => ({ ...p, ispwd: e.target.checked }))} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
-                                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-primary)' }}>Disable/PWD</span>
+                                    <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-primary)' }}>Disable/PWD</span>
                                 </label>
                             </div>
                         </div>
 
                         <div className="space-y-4 pt-1">
                             <div>
-                                <label className="block text-[9px] font-bold uppercase tracking-wider mb-1.5 flex justify-between" style={{ color: 'var(--text-muted)' }}>
+                                <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5 flex justify-between" style={{ color: 'var(--text-muted)' }}>
                                     <span>Allergies</span>
                                     <span className="opacity-50">(Comma separated)</span>
                                 </label>
@@ -235,11 +237,11 @@ export function UserFormModal({ user, onClose, onSave, isSubmitting }: {
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-[9px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Chronic Conditions</label>
+                                    <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Chronic Conditions</label>
                                     <input value={form.chronic_conditions} onChange={(e) => setForm(p => ({ ...p, chronic_conditions: e.target.value }))} placeholder="e.g. Asthma, Diabetes" className="w-full bg-white rounded-lg px-3.5 py-2.5 text-xs font-semibold outline-none border focus:border-blue-400 shadow-sm" style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }} />
                                 </div>
                                 <div>
-                                    <label className="block text-[9px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Current Medications</label>
+                                    <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Current Medications</label>
                                     <input value={form.current_medications} onChange={(e) => setForm(p => ({ ...p, current_medications: e.target.value }))} placeholder="e.g. Salbutamol" className="w-full bg-white rounded-lg px-3.5 py-2.5 text-xs font-semibold outline-none border focus:border-blue-400 shadow-sm" style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }} />
                                 </div>
                             </div>
@@ -255,7 +257,7 @@ export function UserFormModal({ user, onClose, onSave, isSubmitting }: {
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
-                                <label className="block text-[9px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Barangay (Valenzuela)</label>
+                                <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Barangay (Valenzuela)</label>
                                 <div className="relative">
                                     <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 opacity-40" style={{ color: 'var(--text-muted)' }} />
                                     <select required value={form.barangay} onChange={(e) => setForm(p => ({ ...p, barangay: e.target.value }))} className="w-full appearance-none bg-white rounded-lg pl-9 pr-9 py-2.5 text-xs font-semibold outline-none border focus:border-blue-400 shadow-sm" style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}>
@@ -266,11 +268,11 @@ export function UserFormModal({ user, onClose, onSave, isSubmitting }: {
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-[9px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Contact Person</label>
+                                <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Contact Person</label>
                                 <input required value={form.contact_person} onChange={(e) => setForm(p => ({ ...p, contact_person: e.target.value }))} className="w-full bg-white rounded-lg px-3.5 py-2.5 text-xs font-semibold outline-none border focus:border-blue-400 shadow-sm" style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }} />
                             </div>
                             <div>
-                                <label className="block text-[9px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Contact Number</label>
+                                <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Contact Number</label>
                                 <input required value={form.contact_number} onChange={(e) => setForm(p => ({ ...p, contact_number: e.target.value }))} className="w-full bg-white rounded-lg px-3.5 py-2.5 text-xs font-semibold outline-none border focus:border-blue-400 shadow-sm" style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }} />
                             </div>
                         </div>
@@ -281,13 +283,13 @@ export function UserFormModal({ user, onClose, onSave, isSubmitting }: {
                 <div className="p-5 border-t shrink-0 flex items-center justify-between" style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}>
                     <div className="flex items-center gap-2">
                         <Info size={14} style={{ color: 'var(--text-muted)' }} />
-                        <p className="text-[10px] font-bold uppercase tracking-widest hidden md:block" style={{ color: 'var(--text-muted)' }}>Secure Medical Record Entry</p>
+                        <p className="text-[11px] font-bold uppercase tracking-widest hidden md:block" style={{ color: 'var(--text-muted)' }}>Secure Medical Record Entry</p>
                     </div>
                     <div className="flex gap-3 w-full md:w-auto">
-                        <button type="button" onClick={onClose} className="px-6 py-2.5 rounded-lg border text-[10px] font-bold uppercase tracking-wider shadow-sm transition-all hover:bg-black/5" style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>
+                        <button type="button" onClick={onClose} className="px-6 py-2.5 rounded-lg border text-[11px] font-bold uppercase tracking-wider shadow-sm transition-all hover:bg-black/5" style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>
                             Cancel
                         </button>
-                        <button type="submit" onClick={handleSubmit} disabled={isSubmitting} className="flex-1 md:flex-none px-8 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest shadow-md transition-all active:scale-95 disabled:opacity-40" style={{ background: 'var(--accent)', color: 'white' }}>
+                        <button type="submit" onClick={handleSubmit} disabled={isSubmitting} className="flex-1 md:flex-none px-8 py-2.5 rounded-lg text-[11px] font-bold uppercase tracking-widest shadow-md transition-all active:scale-95 disabled:opacity-40" style={{ background: 'var(--accent)', color: 'white' }}>
                             {isSubmitting ? 'Syncing...' : user ? 'Update Record' : 'Register Patient'}
                         </button>
                     </div>
