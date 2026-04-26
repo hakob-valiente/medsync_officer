@@ -2,8 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
     Calendar, Search, Filter, Clock, MapPin,
-    ShieldCheck, ChevronDown,
-    School
+    ShieldCheck, ChevronDown
 } from 'lucide-react';
 import { AppointmentsCalendarWidget } from '../components/AppointmentsCalendarWidget';
 import { useStore } from '../hooks/useStore';
