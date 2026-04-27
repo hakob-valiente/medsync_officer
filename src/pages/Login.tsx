@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { ShieldCheck, ArrowRight, KeyRound, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, ArrowRight, KeyRound, Loader2, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Login() {
@@ -12,6 +12,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const usernameRef = useRef<HTMLInputElement>(null);
 
@@ -113,7 +114,7 @@ export default function Login() {
                   <KeyRound size={18} className="login-input-icon" />
                   <input
                     id="login-password"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     className="login-input"
                     placeholder="Enter your password"
                     value={password}
@@ -121,7 +122,32 @@ export default function Login() {
                     onKeyDown={e => e.key === 'Enter' && handleLogin()}
                     disabled={loading}
                     autoComplete="current-password"
+                    style={{ paddingRight: '2.5rem' }}
                   />
+                  <button
+                    type="button"
+                    className="login-password-toggle"
+                    onClick={() => setShowPassword(!showPassword)}
+                    tabIndex={-1}
+                    style={{
+                      position: 'absolute',
+                      right: '0.75rem',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      color: '#64748b',
+                      cursor: 'pointer',
+                      padding: '0.25rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'color 0.2s',
+                      zIndex: 10
+                    }}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
               </div>
 

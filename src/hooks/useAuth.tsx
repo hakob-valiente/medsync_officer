@@ -42,6 +42,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: 'Username and password are required' };
       }
 
+      // Check for Demo Mode bypass
+      if (import.meta.env.VITE_DEMO_MODE === 'true') {
+        if (username === 'admin' && password === 'password123') {
+          const demoUser: AuthUser = {
+            id: 'demo-officer-id',
+            username: 'admin',
+            fullName: 'Demo Administrator',
+            permissions: ['appointments', 'medical requests', 'inventory', 'inquiries', 'users'], // Full permissions
+          };
+
+          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(demoUser));
+          setState({ isAuthenticated: true, user: demoUser, loading: false });
+          return { success: true };
+        }
+
+        if (username === 'officer' && password === 'password123') {
+          const demoUser: AuthUser = {
+            id: 'demo-officer-id-2',
+            username: 'officer',
+            fullName: 'Demo Officer',
+            permissions: ['appointments', 'inventory'], // Limited permissions
+          };
+
+          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(demoUser));
+          setState({ isAuthenticated: true, user: demoUser, loading: false });
+          return { success: true };
+        }
+      }
+
       // Check against officers table
       const { data, error } = await supabase
         .from('officers')
