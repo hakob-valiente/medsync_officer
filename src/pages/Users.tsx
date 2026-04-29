@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Search, Eye, X, Activity, HeartPulse, Plus, Trash2, Edit, Edit2, History, Calendar, FileText, MessageSquare, User, Image, Phone, MapPin, Mail, Utensils, Filter } from 'lucide-react';
+import { Search, Eye, X, Activity, HeartPulse, Plus, History, Calendar, FileText, MessageSquare, User, Image, Phone, MapPin, Mail, Utensils, Filter } from 'lucide-react';
 import { useStore } from '../hooks/useStore';
-import { fetchUsersFromDB, fetchVisitRecords, deleteUserDB, addUserDB, updateUserDB, addVisitRecordDB, updateVisitRecordDB, deleteVisitRecordDB, addLog } from '../store';
+import { fetchUsersFromDB, fetchVisitRecords, addUserDB, addVisitRecordDB, addLog } from '../store';
 import { notifyIndividual } from '../lib/notifications';
 import { PaginationControl } from '../components/ui/PaginationControl';
 import type { SystemUser, VisitRecord, Appointment, AcceptedAppointment, MedicalCertRequest, MedicineRequest, Inquiry, MealLog } from '../types';
@@ -36,20 +36,16 @@ const calculateAge = (birthday?: string) => {
 };
 
 // ---- Health Information Modal ----
-function HealthModal({ user, onClose, onEdit, onDelete }: {
+function HealthModal({ user, onClose }: {
     user: SystemUser;
     onClose: () => void;
-    onEdit: (u: SystemUser) => void;
-    onDelete: (u: SystemUser) => void;
 }) {
     const { appointments, acceptedAppointments, medicalCertRequests, medicineRequests, inquiries, runLogs, mealLogs } = useStore();
     const [records, setRecords] = useState<VisitRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'visits' | 'appointments' | 'medical' | 'inquiries' | 'runs' | 'nutrition'>('visits');
     const [showVisitForm, setShowVisitForm] = useState(false);
-    const [editRecord, setEditRecord] = useState<VisitRecord | null>(null);
     const [isSubmittingVisit, setIsSubmittingVisit] = useState(false);
-    const [confirmVisitAction, setConfirmVisitAction] = useState<{ record: any, type: 'DELETE' } | null>(null);
     const [idSide, setIdSide] = useState<'front' | 'back'>('front');
     const [expandedImg, setExpandedImg] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
@@ -80,15 +76,9 @@ function HealthModal({ user, onClose, onEdit, onDelete }: {
     const handleSaveVisit = async (data: any) => {
         setIsSubmittingVisit(true);
         try {
-            if (editRecord) {
-                await updateVisitRecordDB(editRecord.id, data);
-                await addLog('Officer', `Updated visit record for patient: ${user.fullName}`);
-            } else {
-                await addVisitRecordDB(data);
-                await addLog('Officer', `Added new visit record for patient: ${user.fullName}`);
-            }
+            await addVisitRecordDB(data);
+            await addLog('Officer', `Added new visit record for patient: ${user.fullName}`);
             setShowVisitForm(false);
-            setEditRecord(null);
             loadRecords();
         } catch (e) {
             alert('Failed to save visit record.');
@@ -97,20 +87,7 @@ function HealthModal({ user, onClose, onEdit, onDelete }: {
         }
     };
 
-    const handleDeleteVisit = async () => {
-        if (!confirmVisitAction) return;
-        setIsSubmittingVisit(true);
-        try {
-            await deleteVisitRecordDB(confirmVisitAction.record.id, user.id);
-            await addLog('Officer', `Deleted visit record for patient: ${user.fullName}`);
-            setConfirmVisitAction(null);
-            loadRecords();
-        } catch (e) {
-            alert('Failed to delete visit record.');
-        } finally {
-            setIsSubmittingVisit(false);
-        }
-    };
+
 
     const fmtDate = (iso: string) => {
         try {
@@ -172,22 +149,6 @@ function HealthModal({ user, onClose, onEdit, onDelete }: {
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => onEdit(user)}
-                            title="Edit Profile"
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border hover:shadow-sm"
-                            style={{ color: 'var(--accent)', background: 'var(--accent-light)', borderColor: 'rgba(72,187,238,0.2)' }}
-                        >
-                            <Edit size={13} /> Edit
-                        </button>
-                        <button
-                            onClick={() => onDelete(user)}
-                            title="Delete Record"
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border hover:shadow-sm"
-                            style={{ color: 'var(--danger)', background: 'var(--danger-bg)', borderColor: 'rgba(226,92,92,0.2)' }}
-                        >
-                            <Trash2 size={13} /> Delete
-                        </button>
                         <button onClick={onClose} className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-slate-100 transition-colors" style={{ color: 'var(--text-muted)' }}>
                             <X size={18} />
                         </button>
@@ -434,7 +395,7 @@ function HealthModal({ user, onClose, onEdit, onDelete }: {
                                         <div className="flex items-center justify-between mb-3">
                                             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Clinical Visits</span>
                                             <button
-                                                onClick={() => { setEditRecord(null); setShowVisitForm(true); }}
+                                                onClick={() => { setShowVisitForm(true); }}
                                                 className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border bg-emerald-50 text-emerald-600 border-emerald-200 transition-all hover:bg-emerald-600 hover:text-white"
                                             >
                                                 <Plus size={12} /> Log Visit
@@ -456,8 +417,6 @@ function HealthModal({ user, onClose, onEdit, onDelete }: {
                                                             rec={rec}
                                                             fmtDate={fmtDate}
                                                             getVitals={getVitals}
-                                                            onEdit={(r) => { setEditRecord(r); setShowVisitForm(true); }}
-                                                            onDelete={(r) => setConfirmVisitAction({ record: r, type: 'DELETE' })}
                                                         />
                                                     ))}
                                                 </div>
@@ -746,26 +705,14 @@ function HealthModal({ user, onClose, onEdit, onDelete }: {
             {showVisitForm && (
                 <VisitRecordFormModal
                     user={user}
-                    record={editRecord}
+                    record={null}
                     onClose={() => {
                         setShowVisitForm(false);
-                        setEditRecord(null);
                     }}
                     onSave={handleSaveVisit}
                     isSubmitting={isSubmittingVisit}
                 />
             )}
-
-            <ConfirmationDialog
-                isOpen={confirmVisitAction?.type === 'DELETE'}
-                title="Delete Visit Entry"
-                description="This will permanently purge this visit record from the patient's history."
-                confirmText="Purge Record"
-                type="danger"
-                isLoading={isSubmittingVisit}
-                onClose={() => setConfirmVisitAction(null)}
-                onConfirm={handleDeleteVisit}
-            />
 
             {/* Fullscreen Image View */}
             {expandedImg && (
@@ -796,15 +743,11 @@ function HealthModal({ user, onClose, onEdit, onDelete }: {
 function VisitRecordRow({
     rec,
     fmtDate,
-    getVitals,
-    onEdit,
-    onDelete
+    getVitals
 }: {
     rec: VisitRecord;
     fmtDate: (iso: string) => string;
     getVitals: (rec: VisitRecord) => any;
-    onEdit: (r: VisitRecord) => void;
-    onDelete: (r: VisitRecord) => void;
 }) {
     const [expanded, setExpanded] = useState(false);
     const v = getVitals(rec);
@@ -839,8 +782,6 @@ function VisitRecordRow({
                     >
                         {expanded ? 'Close' : 'Details'}
                     </button>
-                    <button onClick={() => onEdit(rec)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all"><Edit2 size={14} /></button>
-                    <button onClick={() => onDelete(rec)} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-all"><Trash2 size={14} /></button>
                 </div>
             </div>
 
@@ -1326,8 +1267,6 @@ export default function Users() {
 
     // CRUD States
     const [showForm, setShowForm] = useState(false);
-    const [editUser, setEditUser] = useState<SystemUser | null>(null);
-    const [confirmDelete, setConfirmDelete] = useState<SystemUser | null>(null);
     const [confirmSave, setConfirmSave] = useState<any | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -1420,80 +1359,52 @@ export default function Users() {
         setCurrentPage(1);
     }, [search]);
 
-    const handleDelete = async () => {
-        if (!confirmDelete) return;
-        setIsSubmitting(true);
-        try {
-            await deleteUserDB(confirmDelete.id);
-            await addLog('Officer', `Purged patient record: ${confirmDelete.fullName}`);
-            setConfirmDelete(null);
-            if (viewHealth?.id === confirmDelete.id) setViewHealth(null);
-        } catch (e) {
-            alert('Failed to delete user.');
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
+
 
     const handleSave = async () => {
         if (!confirmSave) return;
         setIsSubmitting(true);
         try {
-            if (editUser) {
-                await updateUserDB(editUser.id, confirmSave);
-                await addLog('Officer', `Updated profile for patient: ${editUser.fullName}`);
+            // ADDING NEW PATIENT -> Validate Duplicates & Intercept for OTP
+            if (!pendingRegData) {
+                const isDuplicateEmail = state.users.some(u => u.email === confirmSave.email);
+                const isDuplicateId = state.users.some(u => u.studentId === confirmSave.student_number || u.student_number === confirmSave.student_number);
 
-                // Notification (INDIVIDUAL)
+                if (isDuplicateEmail) throw new Error("A patient with this email already exists.");
+                if (isDuplicateId) throw new Error("A patient with this student number already exists.");
+
+                // Generate OTP and Send Fake Email
+                const otp = Math.floor(100000 + Math.random() * 900000).toString();
+                setGeneratedOtp(otp);
+                setPendingRegData(confirmSave);
+                console.log(`Sending OTP ${otp} to ${confirmSave.email}`);
+
+                setShowForm(false);
+                setConfirmSave(null);
+                setOtpModalVisible(true);
+                setIsSubmitting(false);
+                return; // Stop here and wait for OTP
+            }
+
+            // If pendingRegData exists, OTP was verified
+            const result = await addUserDB({
+                ...confirmSave,
+                status: 'active'
+            });
+            const insertedUser = (result as any)?.[0];
+            if (insertedUser) {
+                await addLog('Officer', `Registered new patient: ${insertedUser.first_name} ${insertedUser.last_name}`);
                 await notifyIndividual(
-                    editUser.id,
-                    'Profile Updated',
-                    `Your health profile information has been updated by the clinic officer.`,
-                    'profile_update',
-                    editUser.id
+                    insertedUser.id,
+                    'Account Created',
+                    `Your MedSync patient account has been successfully created by the clinic officer.`,
+                    'account_created',
+                    insertedUser.id
                 );
-            } else {
-                // ADDING NEW PATIENT -> Validate Duplicates & Intercept for OTP
-                if (!pendingRegData) {
-                    const isDuplicateEmail = state.users.some(u => u.email === confirmSave.email);
-                    const isDuplicateId = state.users.some(u => u.studentId === confirmSave.student_number || u.student_number === confirmSave.student_number);
-
-                    if (isDuplicateEmail) throw new Error("A patient with this email already exists.");
-                    if (isDuplicateId) throw new Error("A patient with this student number already exists.");
-
-                    // Generate OTP and Send Fake Email
-                    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-                    setGeneratedOtp(otp);
-                    setPendingRegData(confirmSave);
-                    console.log(`Sending OTP ${otp} to ${confirmSave.email}`);
-
-                    setShowForm(false);
-                    setConfirmSave(null);
-                    setOtpModalVisible(true);
-                    setIsSubmitting(false);
-                    return; // Stop here and wait for OTP
-                }
-
-                // If pendingRegData exists, OTP was verified
-                const result = await addUserDB({
-                    ...confirmSave,
-                    status: 'active'
-                });
-                const insertedUser = (result as any)?.[0];
-                if (insertedUser) {
-                    await addLog('Officer', `Registered new patient: ${insertedUser.first_name} ${insertedUser.last_name}`);
-                    await notifyIndividual(
-                        insertedUser.id,
-                        'Account Created',
-                        `Your MedSync patient account has been successfully created by the clinic officer.`,
-                        'account_created',
-                        insertedUser.id
-                    );
-                }
             }
             setConfirmSave(null);
             setPendingRegData(null);
             setShowForm(false);
-            setEditUser(null);
         } catch (e: any) {
             alert(e.message || 'Failed to save user.');
         } finally {
@@ -1523,7 +1434,6 @@ export default function Users() {
                     setPendingRegData(null);
                     setOtpModalVisible(false);
                     setOtpInput('');
-                    setEditUser(null);
                 })
                 .catch(e => alert(e.message || 'Failed to save patient'))
                 .finally(() => setIsSubmitting(false));
@@ -1547,7 +1457,6 @@ export default function Users() {
                 </div>
                 <button
                     onClick={() => {
-                        setEditUser(null);
                         setShowForm(true);
                     }}
                     className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all"
@@ -1725,25 +1634,6 @@ export default function Users() {
                                                 >
                                                     <Eye size={16} />
                                                 </button>
-                                                <button
-                                                    onClick={() => {
-                                                        setEditUser(user);
-                                                        setShowForm(true);
-                                                    }}
-                                                    title="Edit Record"
-                                                    className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
-                                                    style={{ color: 'var(--success)', background: 'var(--success-bg)', border: '1px solid rgba(72,199,142,0.15)' }}
-                                                >
-                                                    <Edit size={16} />
-                                                </button>
-                                                <button
-                                                    onClick={() => setConfirmDelete(user)}
-                                                    title="Delete Record"
-                                                    className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
-                                                    style={{ color: 'var(--danger)', background: 'var(--danger-bg)', border: '1px solid rgba(226,92,92,0.15)' }}
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -1766,37 +1656,21 @@ export default function Users() {
                 <HealthModal
                     user={viewHealth}
                     onClose={() => setViewHealth(null)}
-                    onEdit={(u) => {
-                        setEditUser(u);
-                        setShowForm(true);
-                    }}
-                    onDelete={(u) => setConfirmDelete(u)}
                 />
             )}
 
             {showForm && (
                 <UserFormModal
-                    user={editUser}
+                    user={null}
                     onClose={() => {
                         setShowForm(false);
-                        setEditUser(null);
                     }}
                     onSave={(data: any) => setConfirmSave(data)}
                     isSubmitting={isSubmitting}
                 />
             )}
 
-            {/* Confirm Deletion */}
-            <ConfirmationDialog
-                isOpen={!!confirmDelete}
-                title="Delete Patient Record"
-                description={`Are you sure you want to delete the record of ${confirmDelete?.fullName}? This action cannot be undone.`}
-                confirmText="Delete Record"
-                type="danger"
-                isLoading={isSubmitting}
-                onClose={() => setConfirmDelete(null)}
-                onConfirm={handleDelete}
-            />
+
 
             <FilterModal
                 isOpen={showFilterModal}
@@ -1812,12 +1686,9 @@ export default function Users() {
             {/* Confirm Save (Add/Update) */}
             <ConfirmationDialog
                 isOpen={!!confirmSave}
-                title={editUser ? "Update Patient Record" : "Add New Student"}
-                description={editUser
-                    ? `Are you sure you want to save the changes to ${editUser.fullName}'s record?`
-                    : "Confirm adding this new student record to the system."
-                }
-                confirmText={editUser ? "Update Record" : "Add Student"}
+                title="Add New Student"
+                description="Confirm adding this new student record to the system."
+                confirmText="Add Student"
                 type="info"
                 isLoading={isSubmitting}
                 onClose={() => setConfirmSave(null)}
