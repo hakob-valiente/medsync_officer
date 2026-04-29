@@ -19,8 +19,16 @@ import {
 } from './AppointmentModals';
 import { ShieldCheck, Calendar, X } from 'lucide-react';
 
-export function AppointmentsCalendarWidget() {
+export function AppointmentsCalendarWidget({ initialDate }: { initialDate?: Date }) {
     const calendarRef = useRef<FullCalendar>(null);
+
+    useEffect(() => {
+        if (initialDate && calendarRef.current) {
+            const calendarApi = calendarRef.current.getApi();
+            calendarApi.gotoDate(initialDate);
+            calendarApi.changeView('timeGridDay');
+        }
+    }, [initialDate]);
     const { appointments, acceptedAppointments, campuses } = useStore();
 
     // Modal States

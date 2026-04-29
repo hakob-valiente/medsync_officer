@@ -7,6 +7,8 @@ import {
 import { useState, useEffect } from 'react';
 import { useStore } from '../hooks/useStore';
 import { useAuth } from '../hooks/useAuth';
+import { EmergencyModal } from './EmergencyModal';
+import type { EmergencyReport } from '../types';
 
 const ACCENT = '#059669';   // light mode
 const ACCENT_DARK = '#10b981';   // dark mode
@@ -53,7 +55,24 @@ export default function Layout() {
     const [showNotifications, setShowNotifications] = useState(false);
     const [notifVisibleCount, setNotifVisibleCount] = useState(10);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-    const { appointments, medicineRequests, inquiries, notifications, readNotificationIds } = useStore();
+    const { appointments, medicineRequests, inquiries, notifications, readNotificationIds, emergencyReports } = useStore();
+    
+    // Emergency Modal State
+    const [activeEmergency, setActiveEmergency] = useState<EmergencyReport | null>(null);
+    const [dismissedEmergencyIds, setDismissedEmergencyIds] = useState<Set<string>>(new Set());
+
+    useEffect(() => {
+        const pendingEmergency = (emergencyReports || [])
+            .filter(r => r.status === 'PENDING')
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+        
+        if (pendingEmergency && !dismissedEmergencyIds.has(pendingEmergency.id)) {
+            setActiveEmergency(pendingEmergency);
+        } else {
+            setActiveEmergency(null);
+        }
+    }, [emergencyReports, dismissedEmergencyIds]);
+
     
     const navigate = useNavigate();
 
@@ -582,9 +601,19 @@ export default function Layout() {
                 <main className="flex-1 overflow-y-auto p-7 pt-2 mobile-main-content page-content" style={{ transition: 'background 0.3s ease' }}>
                     <Outlet />
                 </main>
-
-
             </div>
+
+            {/* Global Emergency Modal */}
+            {activeEmergency && (
+                <EmergencyModal 
+                    report={activeEmergency} 
+                    onClose={() => {
+                        setDismissedEmergencyIds(prev => new Set(prev).add(activeEmergency.id));
+                        setActiveEmergency(null);
+                    }} 
+                />
+            )}
+
 
             {/* Logout Confirmation Modal */}
             {showLogoutConfirm && (

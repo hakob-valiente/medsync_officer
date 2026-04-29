@@ -52,6 +52,7 @@ export interface SystemUser {
     ispwd?: boolean;
     contact_person?: string;
     contact_number?: string;
+    full_name?: string; // Optional DB field
 }
 
 export interface CheckupLog {
@@ -148,6 +149,7 @@ export interface MedicalCertRequest {
     profiles?: SystemUser;
     campus?: string;
     admin_created?: boolean;
+    reject_reason?: string;
 }
 
 export interface MedicineRequest {
@@ -165,6 +167,8 @@ export interface MedicineRequest {
     requester_student_number?: string;
     profiles?: SystemUser;
     admin_created?: boolean;
+    generated_qr?: string;
+    reject_reason?: string;
 }
 
 export interface Appointment {
@@ -254,6 +258,9 @@ export interface HealthAdvisory {
     publishedAt: string;
     oneSentenceSummary?: string;
     fullContent?: string;
+    affectedLocations: string[];
+    isMetroManilaAffected: boolean;
+    isValenzuelaAffected: boolean;
 }
 
 export interface Clinic {
@@ -266,6 +273,30 @@ export interface Clinic {
     createdAt: string;
 }
 
+
+export interface EmergencyReport {
+    id: string;
+    requester_id: string;
+    campus: string;
+    building: string;
+    floor?: string;
+    exact_location: string;
+    full_location: string;
+    emergency_type: string;
+    status: string;
+    notes?: string;
+    can_move?: boolean;
+    victim_count: number;
+    verification_mode?: string;
+    id_front_url?: string;
+    id_back_url?: string;
+    cor_url?: string;
+    profile_picture_url?: string;
+    created_at: string;
+    updated_at: string;
+    // UI convenience
+    requester_name?: string;
+}
 
 export interface AppState {
     users: SystemUser[];
@@ -286,4 +317,5 @@ export interface AppState {
     readNotificationIds: string[];
     runLogs: RunLog[];
     mealLogs: MealLog[];
+    emergencyReports: EmergencyReport[];
 }

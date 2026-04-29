@@ -9,7 +9,7 @@
 
 @layer base {
   :root {
-    font-size: 18px;
+    font-size: 16px;
     /* â”€â”€ Primary Palette: Vibrant Emerald â”€â”€ */
     --accent: #059669;
     /* Emerald 600 */

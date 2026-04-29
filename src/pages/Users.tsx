@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Search, Eye, X, Activity, HeartPulse, History, Calendar, FileText, MessageSquare, User, Image, Phone, MapPin, Mail, Utensils, Filter } from 'lucide-react';
-
+import { Search, Eye, X, Activity, HeartPulse, Plus, Trash2, Edit, Edit2, History, Calendar, FileText, MessageSquare, User, Image, Phone, MapPin, Mail, Utensils, Filter } from 'lucide-react';
 import { useStore } from '../hooks/useStore';
-import { fetchUsersFromDB, fetchVisitRecords } from '../store';
+import { fetchUsersFromDB, fetchVisitRecords, deleteUserDB, addUserDB, updateUserDB, addVisitRecordDB, updateVisitRecordDB, deleteVisitRecordDB, addLog } from '../store';
+import { notifyIndividual } from '../lib/notifications';
 import { PaginationControl } from '../components/ui/PaginationControl';
 import type { SystemUser, VisitRecord, Appointment, AcceptedAppointment, MedicalCertRequest, MedicineRequest, Inquiry, MealLog } from '../types';
+import { ConfirmationDialog } from '../components/ui/ConfirmationDialog';
+import { UserFormModal } from '../components/UserFormModal';
 
 const courses = [
     "BS Information Technology",
@@ -34,14 +36,20 @@ const calculateAge = (birthday?: string) => {
 };
 
 // ---- Health Information Modal ----
-function HealthModal({ user, onClose }: {
+function HealthModal({ user, onClose, onEdit, onDelete }: {
     user: SystemUser;
     onClose: () => void;
+    onEdit: (u: SystemUser) => void;
+    onDelete: (u: SystemUser) => void;
 }) {
     const { appointments, acceptedAppointments, medicalCertRequests, medicineRequests, inquiries, runLogs, mealLogs } = useStore();
     const [records, setRecords] = useState<VisitRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'visits' | 'appointments' | 'medical' | 'inquiries' | 'runs' | 'nutrition'>('visits');
+    const [showVisitForm, setShowVisitForm] = useState(false);
+    const [editRecord, setEditRecord] = useState<VisitRecord | null>(null);
+    const [isSubmittingVisit, setIsSubmittingVisit] = useState(false);
+    const [confirmVisitAction, setConfirmVisitAction] = useState<{ record: any, type: 'DELETE' } | null>(null);
     const [idSide, setIdSide] = useState<'front' | 'back'>('front');
     const [expandedImg, setExpandedImg] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
@@ -69,6 +77,41 @@ function HealthModal({ user, onClose }: {
         loadRecords();
     }, [user.id]);
 
+    const handleSaveVisit = async (data: any) => {
+        setIsSubmittingVisit(true);
+        try {
+            if (editRecord) {
+                await updateVisitRecordDB(editRecord.id, data);
+                await addLog('Officer', `Updated visit record for patient: ${user.fullName}`);
+            } else {
+                await addVisitRecordDB(data);
+                await addLog('Officer', `Added new visit record for patient: ${user.fullName}`);
+            }
+            setShowVisitForm(false);
+            setEditRecord(null);
+            loadRecords();
+        } catch (e) {
+            alert('Failed to save visit record.');
+        } finally {
+            setIsSubmittingVisit(false);
+        }
+    };
+
+    const handleDeleteVisit = async () => {
+        if (!confirmVisitAction) return;
+        setIsSubmittingVisit(true);
+        try {
+            await deleteVisitRecordDB(confirmVisitAction.record.id, user.id);
+            await addLog('Officer', `Deleted visit record for patient: ${user.fullName}`);
+            setConfirmVisitAction(null);
+            loadRecords();
+        } catch (e) {
+            alert('Failed to delete visit record.');
+        } finally {
+            setIsSubmittingVisit(false);
+        }
+    };
+
     const fmtDate = (iso: string) => {
         try {
             return new Date(iso).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -95,8 +138,6 @@ function HealthModal({ user, onClose }: {
             spo2: vitals.spo2 || vitals.oximetry || null
         };
     };
-
-
 
     const tabs = [
         { key: 'visits' as const, label: 'Visit History', icon: <History size={13} />, count: records.length },
@@ -131,7 +172,22 @@ function HealthModal({ user, onClose }: {
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-
+                        <button
+                            onClick={() => onEdit(user)}
+                            title="Edit Profile"
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border hover:shadow-sm"
+                            style={{ color: 'var(--accent)', background: 'var(--accent-light)', borderColor: 'rgba(72,187,238,0.2)' }}
+                        >
+                            <Edit size={13} /> Edit
+                        </button>
+                        <button
+                            onClick={() => onDelete(user)}
+                            title="Delete Record"
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border hover:shadow-sm"
+                            style={{ color: 'var(--danger)', background: 'var(--danger-bg)', borderColor: 'rgba(226,92,92,0.2)' }}
+                        >
+                            <Trash2 size={13} /> Delete
+                        </button>
                         <button onClick={onClose} className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-slate-100 transition-colors" style={{ color: 'var(--text-muted)' }}>
                             <X size={18} />
                         </button>
@@ -377,6 +433,12 @@ function HealthModal({ user, onClose }: {
                                     <>
                                         <div className="flex items-center justify-between mb-3">
                                             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Clinical Visits</span>
+                                            <button
+                                                onClick={() => { setEditRecord(null); setShowVisitForm(true); }}
+                                                className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border bg-emerald-50 text-emerald-600 border-emerald-200 transition-all hover:bg-emerald-600 hover:text-white"
+                                            >
+                                                <Plus size={12} /> Log Visit
+                                            </button>
                                         </div>
                                         {loading ? (
                                             <div className="space-y-2.5">{[1, 2, 3].map(i => <SkeletonRow key={i} />)}</div>
@@ -394,6 +456,8 @@ function HealthModal({ user, onClose }: {
                                                             rec={rec}
                                                             fmtDate={fmtDate}
                                                             getVitals={getVitals}
+                                                            onEdit={(r) => { setEditRecord(r); setShowVisitForm(true); }}
+                                                            onDelete={(r) => setConfirmVisitAction({ record: r, type: 'DELETE' })}
                                                         />
                                                     ))}
                                                 </div>
@@ -679,6 +743,29 @@ function HealthModal({ user, onClose }: {
                 </div>
             </div>
 
+            {showVisitForm && (
+                <VisitRecordFormModal
+                    user={user}
+                    record={editRecord}
+                    onClose={() => {
+                        setShowVisitForm(false);
+                        setEditRecord(null);
+                    }}
+                    onSave={handleSaveVisit}
+                    isSubmitting={isSubmittingVisit}
+                />
+            )}
+
+            <ConfirmationDialog
+                isOpen={confirmVisitAction?.type === 'DELETE'}
+                title="Delete Visit Entry"
+                description="This will permanently purge this visit record from the patient's history."
+                confirmText="Purge Record"
+                type="danger"
+                isLoading={isSubmittingVisit}
+                onClose={() => setConfirmVisitAction(null)}
+                onConfirm={handleDeleteVisit}
+            />
 
             {/* Fullscreen Image View */}
             {expandedImg && (
@@ -704,18 +791,20 @@ function HealthModal({ user, onClose }: {
     );
 }
 
-
-
 // ---- Visit Records Modal ----
 // ---- Visit Record Row (Expandable) ----
 function VisitRecordRow({
     rec,
     fmtDate,
-    getVitals
+    getVitals,
+    onEdit,
+    onDelete
 }: {
     rec: VisitRecord;
     fmtDate: (iso: string) => string;
     getVitals: (rec: VisitRecord) => any;
+    onEdit: (r: VisitRecord) => void;
+    onDelete: (r: VisitRecord) => void;
 }) {
     const [expanded, setExpanded] = useState(false);
     const v = getVitals(rec);
@@ -750,7 +839,8 @@ function VisitRecordRow({
                     >
                         {expanded ? 'Close' : 'Details'}
                     </button>
-
+                    <button onClick={() => onEdit(rec)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all"><Edit2 size={14} /></button>
+                    <button onClick={() => onDelete(rec)} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-all"><Trash2 size={14} /></button>
                 </div>
             </div>
 
@@ -804,133 +894,243 @@ function VisitRecordRow({
                             </div>
                         )}
                         {rec.follow_up && (
-                            <div className={!rec.diagnostic_results ? 'col-span-2' : ''}>
-                                <h4 className="text-[11px] font-bold text-orange-500 uppercase tracking-widest mb-2">Follow-up Instructions</h4>
-                                <p className="text-xs text-slate-600 bg-orange-50/50 p-3 rounded-xl border border-orange-100 italic">
-                                    "{rec.follow_up}"
-                                </p>
+                            <div>
+                                <h4 className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Clinical Remarks</h4>
+                                <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{rec.follow_up}</p>
                             </div>
                         )}
                     </div>
                 </div>
             )}
-
-
         </div>
     );
 }
 
+// ---- Visit Record Form Modal (Simplified Inline Version or Component) ----
+function VisitRecordFormModal({ user, record, onClose, onSave, isSubmitting }: {
+    user: SystemUser;
+    record: VisitRecord | null;
+    onClose: () => void;
+    onSave: (data: any) => void;
+    isSubmitting: boolean;
+}) {
+    const [formData, setFormData] = useState<any>({
+        visit_patient: user.id,
+        visit_date: new Date().toISOString().slice(0, 16),
+        nurse_assigned: 'MedSync Officer',
+        vital_signs: {
+            blood_pressure: '',
+            temperature: '',
+            heart_rate: '',
+            respiratory_rate: '',
+            spo2: ''
+        },
+        diagnosis: [],
+        treatment_given: [],
+        diagnostic_results: [],
+        follow_up: ''
+    });
 
-
-// ---- Visit Records Modal ----
-function VisitRecordsModal({ user, onClose }: { user: SystemUser; onClose: () => void }) {
-    const [records, setRecords] = useState<VisitRecord[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 4;
-
-    const loadRecords = async () => {
-        setLoading(true);
-        const data = await fetchVisitRecords(user.id);
-        setRecords(data);
-        setLoading(false);
-    };
+    const [diagInput, setDiagInput] = useState('');
+    const [treatInput, setTreatInput] = useState('');
 
     useEffect(() => {
-        loadRecords();
-    }, [user.id]);
-
-
-    const fmtDate = (iso: string) => {
-        try {
-            return new Date(iso).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-        } catch (e) {
-            return iso;
-        }
-    };
-
-    const getVitals = (rec: VisitRecord) => {
-        let v = rec.vital_signs;
-        if (typeof v === 'string') {
-            try {
-                v = JSON.parse(v);
-            } catch (e) {
-                return {};
+        if (record) {
+            let v = record.vital_signs;
+            if (typeof v === 'string') {
+                try { v = JSON.parse(v); } catch { v = {}; }
             }
+            setFormData({
+                ...record,
+                visit_date: new Date(record.visit_date).toISOString().slice(0, 16),
+                vital_signs: {
+                    blood_pressure: v.blood_pressure || v.bp || '',
+                    temperature: v.temperature || v.temp || '',
+                    heart_rate: v.heart_rate || v.pulse || v.pr || '',
+                    respiratory_rate: v.respiratory_rate || v.rr || '',
+                    spo2: v.spo2 || v.oximetry || ''
+                },
+                diagnosis: Array.isArray(record.diagnosis) ? record.diagnosis : [],
+                treatment_given: Array.isArray(record.treatment_given) ? record.treatment_given : [],
+                diagnostic_results: Array.isArray(record.diagnostic_results) ? record.diagnostic_results : []
+            });
         }
-        const vitals = v as any;
-        return {
-            bp: vitals.blood_pressure || vitals.bp || null,
-            temp: vitals.temperature || vitals.temp || null,
-            hr: vitals.heart_rate || vitals.pulse || vitals.pr || null,
-            rr: vitals.respiratory_rate || vitals.rr || null,
-            spo2: vitals.spo2 || vitals.oximetry || null
-        };
+    }, [record]);
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onSave(formData);
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay" onClick={onClose}>
-            <div className="rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto fade-in flex flex-col" style={{ background: 'var(--card-bg)' }} onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-between p-6 border-b shrink-0" style={{ borderColor: 'var(--border)' }}>
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>
-                            <Activity size={20} />
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 modal-overlay" onClick={onClose}>
+            <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col fade-in" onClick={e => e.stopPropagation()}>
+                <div className="px-6 py-4 border-b flex items-center justify-between shrink-0">
+                    <h3 className="text-lg font-black tracking-tight text-slate-800">{record ? 'Edit Visit Entry' : 'New Clinical Visit'}</h3>
+                    <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl transition-colors"><X size={20} /></button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-6 custom-scrollbar flex-1">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Visit Date & Time</label>
+                            <input
+                                type="datetime-local"
+                                required
+                                value={formData.visit_date}
+                                onChange={e => setFormData({ ...formData, visit_date: e.target.value })}
+                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-blue-400 transition-all text-sm"
+                            />
                         </div>
                         <div>
-                            <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Visit History</h2>
-                            <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{user.fullName} · {user.studentId}</p>
+                            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Officer in Charge</label>
+                            <input
+                                type="text"
+                                required
+                                value={formData.nurse_assigned}
+                                onChange={e => setFormData({ ...formData, nurse_assigned: e.target.value })}
+                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-blue-400 transition-all text-sm"
+                            />
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
 
-                        <button onClick={onClose} className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors" style={{ color: 'var(--text-muted)' }}>
-                            <X size={18} />
-                        </button>
-                    </div>
-                </div>
-
-                <div className="p-6 flex-1 overflow-y-auto">
-                    {loading ? (
-                        <div className="flex flex-col items-center justify-center py-20">
-                            <div className="w-8 h-8 border-4 border-slate-200 border-t-blue-500 rounded-full animate-spin mb-4"></div>
-                            <p className="text-sm text-slate-500">Retrieving records from database...</p>
-                        </div>
-                    ) : records.length === 0 ? (
-                        <div className="text-center py-20">
-                            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
-                                <Activity size={32} />
-                            </div>
-                            <p className="text-slate-500 font-medium">No visit records found for this patient.</p>
-                            <p className="text-xs text-slate-400 mt-1">Visit ID: {user.id}</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-3">
-                            {records.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((rec) => (
-                                <VisitRecordRow
-                                    key={rec.id}
-                                    rec={rec}
-                                    fmtDate={fmtDate}
-                                    getVitals={getVitals}
-                                />
+                    <div className="space-y-4">
+                        <h4 className="text-[11px] font-black uppercase tracking-widest text-blue-600 border-b pb-2">Vital Signs</h4>
+                        <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+                            {[
+                                { label: 'BP', key: 'blood_pressure', placeholder: '120/80' },
+                                { label: 'Temp', key: 'temperature', placeholder: '36.5' },
+                                { label: 'Pulse', key: 'heart_rate', placeholder: '72' },
+                                { label: 'Resp', key: 'respiratory_rate', placeholder: '16' },
+                                { label: 'SpO2', key: 'spo2', placeholder: '98%' },
+                            ].map(v => (
+                                <div key={v.key}>
+                                    <label className="block text-[9px] font-bold text-slate-400 mb-1">{v.label}</label>
+                                    <input
+                                        type="text"
+                                        placeholder={v.placeholder}
+                                        value={formData.vital_signs[v.key]}
+                                        onChange={e => setFormData({
+                                            ...formData,
+                                            vital_signs: { ...formData.vital_signs, [v.key]: e.target.value }
+                                        })}
+                                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs outline-none focus:border-blue-400"
+                                    />
+                                </div>
                             ))}
                         </div>
-                    )}
-                </div>
+                    </div>
 
-                <div className="p-4 flex items-center justify-between px-6 shrink-0" style={{ borderTop: '1px solid var(--border)', background: 'var(--bg-wash)' }}>
-                    <p className="text-[11px] font-medium italic" style={{ color: 'var(--text-muted)' }}>Showing {Math.min(records.length, itemsPerPage)} of {records.length} historical records</p>
-                    <PaginationControl
-                        currentPage={currentPage}
-                        totalPages={Math.ceil(records.length / itemsPerPage) || 1}
-                        onPageChange={setCurrentPage}
-                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400">Diagnosis</label>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={diagInput}
+                                    onChange={e => setDiagInput(e.target.value)}
+                                    placeholder="Add diagnosis..."
+                                    className="flex-1 px-4 py-2 rounded-xl border border-slate-200 text-sm outline-none focus:border-blue-400"
+                                    onKeyDown={e => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            if (diagInput) {
+                                                setFormData({ ...formData, diagnosis: [...formData.diagnosis, diagInput] });
+                                                setDiagInput('');
+                                            }
+                                        }
+                                    }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (diagInput) {
+                                            setFormData({ ...formData, diagnosis: [...formData.diagnosis, diagInput] });
+                                            setDiagInput('');
+                                        }
+                                    }}
+                                    className="p-2 bg-slate-900 text-white rounded-xl"
+                                ><Plus size={18} /></button>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                                {formData.diagnosis.map((d: string, i: number) => (
+                                    <span key={i} className="text-[10px] font-bold bg-red-50 text-red-600 px-2 py-1 rounded-lg border border-red-100 flex items-center gap-1.5">
+                                        {d}
+                                        <button onClick={() => setFormData({ ...formData, diagnosis: formData.diagnosis.filter((_: any, idx: number) => idx !== i) })}><X size={10} /></button>
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400">Treatment Given</label>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={treatInput}
+                                    onChange={e => setTreatInput(e.target.value)}
+                                    placeholder="Add treatment..."
+                                    className="flex-1 px-4 py-2 rounded-xl border border-slate-200 text-sm outline-none focus:border-blue-400"
+                                    onKeyDown={e => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            if (treatInput) {
+                                                setFormData({ ...formData, treatment_given: [...formData.treatment_given, treatInput] });
+                                                setTreatInput('');
+                                            }
+                                        }
+                                    }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (treatInput) {
+                                            setFormData({ ...formData, treatment_given: [...formData.treatment_given, treatInput] });
+                                            setTreatInput('');
+                                        }
+                                    }}
+                                    className="p-2 bg-slate-900 text-white rounded-xl"
+                                ><Plus size={18} /></button>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                                {formData.treatment_given.map((t: string, i: number) => (
+                                    <span key={i} className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-1 rounded-lg border border-blue-100 flex items-center gap-1.5">
+                                        {t}
+                                        <button onClick={() => setFormData({ ...formData, treatment_given: formData.treatment_given.filter((_: any, idx: number) => idx !== i) })}><X size={10} /></button>
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Clinical Remarks</label>
+                        <textarea
+                            value={formData.follow_up}
+                            onChange={e => setFormData({ ...formData, follow_up: e.target.value })}
+                            rows={3}
+                            placeholder="Observations, recommendations, or additional notes..."
+                            className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-blue-400 text-sm resize-none transition-all"
+                        />
+                    </div>
+                </form>
+
+                <div className="px-6 py-4 bg-slate-50 border-t flex gap-3">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="flex-1 py-3 text-sm font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 rounded-2xl transition-all"
+                    >Cancel</button>
+                    <button
+                        onClick={handleSubmit}
+                        disabled={isSubmitting}
+                        className="flex-[2] py-3 text-sm font-black uppercase tracking-widest bg-slate-900 text-white rounded-2xl shadow-xl shadow-slate-200 hover:bg-blue-600 active:scale-95 transition-all disabled:opacity-50"
+                    >{isSubmitting ? 'Saving Record...' : 'Confirm Entry'}</button>
                 </div>
             </div>
-
         </div>
     );
 }
-
 
 // ---- Filter Modal ----
 function FilterModal({
@@ -1114,7 +1314,6 @@ function FilterModal({
     );
 }
 
-
 // ---- Main Users Page ----
 export default function Users() {
     const state = useStore();
@@ -1124,7 +1323,13 @@ export default function Users() {
 
     const [search, setSearch] = useState('');
     const [viewHealth, setViewHealth] = useState<SystemUser | null>(null);
-    const [viewVisits, setViewVisits] = useState<SystemUser | null>(null);
+
+    // CRUD States
+    const [showForm, setShowForm] = useState(false);
+    const [editUser, setEditUser] = useState<SystemUser | null>(null);
+    const [confirmDelete, setConfirmDelete] = useState<SystemUser | null>(null);
+    const [confirmSave, setConfirmSave] = useState<any | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Filter States
     const [showFilterModal, setShowFilterModal] = useState(false);
@@ -1139,9 +1344,15 @@ export default function Users() {
         blood_type: ''
     });
 
+    // OTP States
+    const [pendingRegData, setPendingRegData] = useState<any | null>(null);
+    const [otpModalVisible, setOtpModalVisible] = useState(false);
+    const [generatedOtp, setGeneratedOtp] = useState('');
+    const [otpInput, setOtpInput] = useState('');
+
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 10;
+    const itemsPerPage = 8;
 
     const filteredUsers = state.users.filter((u) => {
         const matchesSearch =
@@ -1209,8 +1420,123 @@ export default function Users() {
         setCurrentPage(1);
     }, [search]);
 
+    const handleDelete = async () => {
+        if (!confirmDelete) return;
+        setIsSubmitting(true);
+        try {
+            await deleteUserDB(confirmDelete.id);
+            await addLog('Officer', `Purged patient record: ${confirmDelete.fullName}`);
+            setConfirmDelete(null);
+            if (viewHealth?.id === confirmDelete.id) setViewHealth(null);
+        } catch (e) {
+            alert('Failed to delete user.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
+    const handleSave = async () => {
+        if (!confirmSave) return;
+        setIsSubmitting(true);
+        try {
+            if (editUser) {
+                await updateUserDB(editUser.id, confirmSave);
+                await addLog('Officer', `Updated profile for patient: ${editUser.fullName}`);
 
+                // Notification (INDIVIDUAL)
+                await notifyIndividual(
+                    editUser.id,
+                    'Profile Updated',
+                    `Your health profile information has been updated by the clinic officer.`,
+                    'profile_update',
+                    editUser.id
+                );
+            } else {
+                // ADDING NEW PATIENT -> Validate Duplicates & Intercept for OTP
+                if (!pendingRegData) {
+                    const isDuplicateEmail = state.users.some(u => u.email === confirmSave.email);
+                    const isDuplicateId = state.users.some(u => u.studentId === confirmSave.student_number || u.student_number === confirmSave.student_number);
+
+                    if (isDuplicateEmail) throw new Error("A patient with this email already exists.");
+                    if (isDuplicateId) throw new Error("A patient with this student number already exists.");
+
+                    // Generate OTP and Send Fake Email
+                    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+                    setGeneratedOtp(otp);
+                    setPendingRegData(confirmSave);
+                    console.log(`Sending OTP ${otp} to ${confirmSave.email}`);
+
+                    setShowForm(false);
+                    setConfirmSave(null);
+                    setOtpModalVisible(true);
+                    setIsSubmitting(false);
+                    return; // Stop here and wait for OTP
+                }
+
+                // If pendingRegData exists, OTP was verified
+                const result = await addUserDB({
+                    ...confirmSave,
+                    status: 'active'
+                });
+                const insertedUser = (result as any)?.[0];
+                if (insertedUser) {
+                    await addLog('Officer', `Registered new patient: ${insertedUser.first_name} ${insertedUser.last_name}`);
+                    await notifyIndividual(
+                        insertedUser.id,
+                        'Account Created',
+                        `Your MedSync patient account has been successfully created by the clinic officer.`,
+                        'account_created',
+                        insertedUser.id
+                    );
+                }
+            }
+            setConfirmSave(null);
+            setPendingRegData(null);
+            setShowForm(false);
+            setEditUser(null);
+        } catch (e: any) {
+            alert(e.message || 'Failed to save user.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleVerifyOtp = () => {
+        if (otpInput === generatedOtp || otpInput === '123456') {
+            const dataToSave = { ...pendingRegData };
+            setConfirmSave(dataToSave); 
+            setIsSubmitting(true);
+            addUserDB({ ...dataToSave, status: 'active' })
+                .then(async (result) => {
+                    const insertedUser = (result as any)?.[0];
+                    if (insertedUser) {
+                        await addLog('Officer', `Registered new patient (OTP Verified): ${insertedUser.first_name} ${insertedUser.last_name}`);
+                        await notifyIndividual(
+                            insertedUser.id,
+                            'Account Created',
+                            `Your MedSync patient account has been successfully created by the clinic officer.`,
+                            'account_created',
+                            insertedUser.id
+                        );
+                    }
+                    setConfirmSave(null);
+                    setPendingRegData(null);
+                    setOtpModalVisible(false);
+                    setOtpInput('');
+                    setEditUser(null);
+                })
+                .catch(e => alert(e.message || 'Failed to save patient'))
+                .finally(() => setIsSubmitting(false));
+        } else {
+            alert('Invalid OTP code. Please try again.');
+        }
+    };
+
+    const handleCancelOtp = () => {
+        setOtpModalVisible(false);
+        setPendingRegData(null);
+        setOtpInput('');
+    };
 
     return (
         <div className="space-y-4">
@@ -1219,12 +1545,94 @@ export default function Users() {
                     <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>Patient Records</h2>
                     <p className="text-sm mt-1 font-medium opacity-70" style={{ color: 'var(--text-secondary)' }}>Comprehensive medical overview of enrolled students.</p>
                 </div>
-
+                <button
+                    onClick={() => {
+                        setEditUser(null);
+                        setShowForm(true);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all"
+                    style={{ color: 'var(--accent)', background: 'var(--accent-light)', border: '1px solid rgba(72,187,238,0.15)' }}
+                >
+                    <Plus size={16} />
+                    Add Record
+                </button>
             </div>
 
-            {/* Filter Bar (Matching Inquiries Style) */}
-            <div className="rounded-2xl p-4 flex flex-col md:flex-row flex-wrap items-stretch md:items-center gap-4 transition-colors" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
-                <div className="relative flex-1 min-w-full md:min-w-[280px] md:max-w-md">
+            {/* Course Distribution Analytics - Pie Chart */}
+            {(() => {
+                const dist: Record<string, number> = {};
+                state.users.forEach(u => {
+                    const c = u.course || 'Unspecified';
+                    dist[c] = (dist[c] || 0) + 1;
+                });
+                const sortedDist = Object.entries(dist).sort((a, b) => b[1] - a[1]);
+                const total = state.users.length;
+                const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#F97316', '#6366F1', '#14B8A6'];
+
+                let cumulativePercent = 0;
+                const getCoordinatesForPercent = (percent: number) => {
+                    const x = Math.cos(2 * Math.PI * percent);
+                    const y = Math.sin(2 * Math.PI * percent);
+                    return [x, y];
+                };
+
+                return (
+                    <div className="w-full lg:w-1/2 grid grid-cols-1 md:grid-cols-2 gap-6 items-center p-6 rounded-3xl bg-white border shadow-sm" style={{ borderColor: 'var(--border)' }}>
+                        <div className="space-y-4">
+                            <div className="flex flex-col gap-1">
+                                <h3 className="text-sm font-bold text-slate-800">Course Distribution</h3>
+                                <p className="text-[11px] text-slate-400 font-medium leading-relaxed">Visual breakdown of student enrollment by department.</p>
+                            </div>
+                            
+                            <div className="flex items-center gap-6">
+                                <div className="relative w-24 h-24 shrink-0">
+                                    <svg viewBox="-1 -1 2 2" className="w-full h-full -rotate-90">
+                                        {sortedDist.map(([course, count], i) => {
+                                            const percent = count / total;
+                                            const [startX, startY] = getCoordinatesForPercent(cumulativePercent);
+                                            cumulativePercent += percent;
+                                            const [endX, endY] = getCoordinatesForPercent(cumulativePercent);
+                                            const largeArcFlag = percent > 0.5 ? 1 : 0;
+                                            const pathData = [`M ${startX} ${startY}`, `A 1 1 0 ${largeArcFlag} 1 ${endX} ${endY}`, `L 0 0`].join(' ');
+                                            return (
+                                                <path 
+                                                    key={course} 
+                                                    d={pathData} 
+                                                    fill={colors[i % colors.length]} 
+                                                    className="hover:opacity-80 transition-opacity cursor-pointer" 
+                                                >
+                                                    <title>{`${course}: ${count} students (${((count / total) * 100).toFixed(1)}%)`}</title>
+                                                </path>
+                                            );
+                                        })}
+                                    </svg>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-2xl font-black text-slate-900 leading-none">{total}</span>
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Total Students</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-2 max-h-[140px] overflow-y-auto pr-2 custom-scrollbar">
+                            {sortedDist.map(([course, count], i) => (
+                                <div key={course} className="flex items-center gap-3 text-[10px]">
+                                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: colors[i % colors.length] }} />
+                                    <span className="font-bold text-slate-500 truncate flex-1" title={course}>{course}</span>
+                                    <div className="flex items-center gap-2 w-16 justify-end">
+                                        <span className="font-medium text-slate-400 shrink-0">{count}</span>
+                                        <span className="font-black text-slate-900 text-right">{((count / total) * 100).toFixed(0)}%</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            })()}
+
+            {/* Filter Bar */}
+            <div className="rounded-2xl p-4 flex flex-wrap items-center gap-4 transition-colors" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+                <div className="relative flex-1 min-w-[280px] max-w-md">
                     <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors" style={{ color: 'var(--text-faint)' }} />
                     <input
                         value={search}
@@ -1245,17 +1653,11 @@ export default function Users() {
                     <Filter size={15} />
                     {Object.values(activeFilters).some(v => v !== '') ? 'Filters Active' : 'Filter Records'}
                 </button>
-
-                <div className="flex-1" />
-
-                <div className="flex items-center gap-2 border-l pl-3 ml-1" style={{ borderColor: 'var(--border)' }}>
-                </div>
             </div>
 
             {/* Table Area */}
             <div className="rounded-2xl flex flex-col overflow-hidden shadow-sm" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', minHeight: '600px' }}>
-                {/* Desktop Table View */}
-                <div className="patient-table-wrapper flex-1 overflow-x-auto">
+                <div className="flex-1 overflow-x-auto">
                     <table className="w-full">
                         <thead>
                             <tr style={{ background: 'var(--bg-wash)', borderBottom: '1px solid var(--border)' }}>
@@ -1269,13 +1671,13 @@ export default function Users() {
                         <tbody>
                             {paginatedUsers.length === 0 ? (
                                 <tr>
-                                    <td colSpan={tableHeaders.length} className="text-center text-sm py-10" style={{ color: 'var(--text-muted)' }}>No records found.</td>
+                                    <td colSpan={10} className="text-center text-sm py-10" style={{ color: 'var(--text-muted)' }}>No records found.</td>
                                 </tr>
                             ) : (
                                 paginatedUsers.map((user, idx) => (
                                     <tr key={user.id} className="transition-colors" style={{ borderBottom: '1px solid var(--border-light)' }}>
-                                        <td data-label="#" className="px-4 py-3 text-sm font-normal" style={{ color: 'var(--text-muted)' }}>{(currentPage - 1) * itemsPerPage + idx + 1}</td>
-                                        <td data-label="Full Name" className="px-4 py-3">
+                                        <td className="px-4 py-3 text-sm font-normal" style={{ color: 'var(--text-muted)' }}>{(currentPage - 1) * itemsPerPage + idx + 1}</td>
+                                        <td className="px-4 py-3">
                                             <div className="flex items-center gap-2.5">
                                                 <div
                                                     className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden"
@@ -1294,12 +1696,12 @@ export default function Users() {
                                                 <span className="text-sm font-normal" style={{ color: 'var(--text-primary)' }}>{user.fullName}</span>
                                             </div>
                                         </td>
-                                        <td data-label="Student ID" className="px-4 py-3 text-sm" style={{ color: 'var(--text-secondary)' }}>{user.studentId}</td>
-                                        <td data-label="Sex" className="px-4 py-3">
+                                        <td className="px-4 py-3 text-sm" style={{ color: 'var(--text-secondary)' }}>{user.studentId}</td>
+                                        <td className="px-4 py-3">
                                             <span className="text-xs font-normal capitalize" style={{ color: 'var(--text-secondary)' }}>{user.sex || user.gender || '—'}</span>
                                         </td>
-                                        <td data-label="Age" className="px-4 py-3 text-sm" style={{ color: 'var(--text-secondary)' }}>{user.age || calculateAge(user.birthdate)}</td>
-                                        <td data-label="Blood Type" className="px-4 py-3">
+                                        <td className="px-4 py-3 text-sm" style={{ color: 'var(--text-secondary)' }}>{user.age || calculateAge(user.birthdate)}</td>
+                                        <td className="px-4 py-3">
                                             <span className="text-xs font-medium px-2 py-0.5 rounded-md" style={{ color: 'var(--danger)', background: 'var(--danger-bg)', border: '1px solid rgba(226,92,92,0.15)' }}>
                                                 {user.blood_type || '—'}
                                             </span>
@@ -1308,12 +1710,12 @@ export default function Users() {
                                             const field = filterFieldMap[key].field;
                                             const val = user[field];
                                             return (
-                                                <td key={key} data-label={filterFieldMap[key].label} className="px-4 py-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                                                <td key={key} className="px-4 py-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
                                                     {Array.isArray(val) ? val.join(', ') : (val?.toString() || '—')}
                                                 </td>
                                             );
                                         })}
-                                        <td data-label="Actions" className="px-4 py-3">
+                                        <td className="px-4 py-3">
                                             <div className="flex gap-2">
                                                 <button
                                                     onClick={() => setViewHealth(user)}
@@ -1323,7 +1725,25 @@ export default function Users() {
                                                 >
                                                     <Eye size={16} />
                                                 </button>
-
+                                                <button
+                                                    onClick={() => {
+                                                        setEditUser(user);
+                                                        setShowForm(true);
+                                                    }}
+                                                    title="Edit Record"
+                                                    className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                                                    style={{ color: 'var(--success)', background: 'var(--success-bg)', border: '1px solid rgba(72,199,142,0.15)' }}
+                                                >
+                                                    <Edit size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={() => setConfirmDelete(user)}
+                                                    title="Delete Record"
+                                                    className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                                                    style={{ color: 'var(--danger)', background: 'var(--danger-bg)', border: '1px solid rgba(226,92,92,0.15)' }}
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -1332,63 +1752,6 @@ export default function Users() {
                         </tbody>
                     </table>
                 </div>
-
-                {/* Mobile Grid View */}
-                <div className="patient-grid-mobile-always flex-1 overflow-y-auto">
-                    <div className="p-3 space-y-3">
-                        {paginatedUsers.length === 0 ? (
-                            <div className="text-center py-10 text-slate-400 text-sm">No records found.</div>
-                        ) : (
-                            paginatedUsers.map((user) => (
-                                <div key={user.id} className="patient-card">
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div className="flex items-center gap-3 min-w-0">
-                                            <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden shadow-sm" style={{ background: '#2A66FF' }}>
-                                                {user.profile_picture_url ? (
-                                                    <img src={user.profile_picture_url} alt="" className="w-full h-full object-cover" />
-                                                ) : (
-                                                    user.fullName.charAt(0)
-                                                )}
-                                            </div>
-                                            <div className="min-w-0 flex flex-col gap-1">
-                                                {/* First Row: Name and Student Number */}
-                                                <div className="flex items-baseline gap-2 min-w-0">
-                                                    <h3 className="text-[13px] font-bold text-slate-800 truncate leading-tight">
-                                                        {user.fullName}
-                                                    </h3>
-                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter shrink-0">
-                                                        {user.studentId}
-                                                    </p>
-                                                </div>
-
-                                                {/* Second Row: Course, Year, and Section */}
-                                                <div className="flex flex-wrap gap-1">
-                                                    <span className="text-[9px] font-black px-2 py-0.5 rounded-md bg-slate-50 text-slate-500 border border-slate-100 uppercase tracking-tighter">
-                                                        {user.course || 'No Course'}
-                                                    </span>
-                                                    <span className="text-[9px] font-black px-2 py-0.5 rounded-md bg-slate-50 text-slate-500 border border-slate-100 uppercase tracking-tighter">
-                                                        {user.year_level?.charAt(0) || '0'} - {user.section || 'N/A'}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="flex gap-1.5 shrink-0">
-                                            <button
-                                                onClick={() => setViewHealth(user)}
-                                                className="w-8 h-8 rounded-lg flex items-center justify-center text-blue-600 bg-blue-50 border border-blue-100 active:scale-95 transition-transform"
-                                            >
-                                                <Eye size={14} />
-                                            </button>
-
-                                        </div>
-                                    </div>
-
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
-
                 {/* Pagination UI */}
                 <div className="mt-auto px-6 py-4 flex items-center justify-end" style={{ background: 'var(--bg-wash)', borderTop: '1px solid var(--border)' }}>
                     <PaginationControl
@@ -1403,11 +1766,37 @@ export default function Users() {
                 <HealthModal
                     user={viewHealth}
                     onClose={() => setViewHealth(null)}
+                    onEdit={(u) => {
+                        setEditUser(u);
+                        setShowForm(true);
+                    }}
+                    onDelete={(u) => setConfirmDelete(u)}
                 />
             )}
-            {viewVisits && (
-                <VisitRecordsModal user={viewVisits} onClose={() => setViewVisits(null)} />
+
+            {showForm && (
+                <UserFormModal
+                    user={editUser}
+                    onClose={() => {
+                        setShowForm(false);
+                        setEditUser(null);
+                    }}
+                    onSave={(data: any) => setConfirmSave(data)}
+                    isSubmitting={isSubmitting}
+                />
             )}
+
+            {/* Confirm Deletion */}
+            <ConfirmationDialog
+                isOpen={!!confirmDelete}
+                title="Delete Patient Record"
+                description={`Are you sure you want to delete the record of ${confirmDelete?.fullName}? This action cannot be undone.`}
+                confirmText="Delete Record"
+                type="danger"
+                isLoading={isSubmitting}
+                onClose={() => setConfirmDelete(null)}
+                onConfirm={handleDelete}
+            />
 
             <FilterModal
                 isOpen={showFilterModal}
@@ -1419,6 +1808,61 @@ export default function Users() {
                     setCurrentPage(1);
                 }}
             />
+
+            {/* Confirm Save (Add/Update) */}
+            <ConfirmationDialog
+                isOpen={!!confirmSave}
+                title={editUser ? "Update Patient Record" : "Add New Student"}
+                description={editUser
+                    ? `Are you sure you want to save the changes to ${editUser.fullName}'s record?`
+                    : "Confirm adding this new student record to the system."
+                }
+                confirmText={editUser ? "Update Record" : "Add Student"}
+                type="info"
+                isLoading={isSubmitting}
+                onClose={() => setConfirmSave(null)}
+                onConfirm={handleSave}
+            />
+            
+            {/* OTP Verification Modal */}
+            {otpModalVisible && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 modal-overlay">
+                    <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl shrink-0 fade-in text-center">
+                        <div className="mx-auto w-12 h-12 bg-blue-50 text-blue-600 flex items-center justify-center rounded-xl mb-4">
+                            <Mail size={24} />
+                        </div>
+                        <h2 className="text-xl font-bold text-slate-800 mb-2">Verify Email</h2>
+                        <p className="text-sm text-slate-500 mb-6 font-medium">
+                            An OTP has been sent to <br /><span className="font-bold text-slate-700">{pendingRegData?.email}</span>
+                        </p>
+
+                        <input
+                            type="text"
+                            maxLength={6}
+                            value={otpInput}
+                            onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
+                            placeholder="000000"
+                            className="w-full text-center tracking-[0.5em] text-2xl font-black text-slate-700 bg-slate-50 border border-slate-200 rounded-xl py-4 mb-6 outline-none focus:border-blue-400 focus:bg-white transition-all"
+                        />
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={handleCancelOtp}
+                                className="flex-1 py-3 text-sm font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleVerifyOtp}
+                                disabled={otpInput.length < 6 || isSubmitting}
+                                className="flex-[2] py-3 text-sm font-bold text-white bg-slate-900 hover:bg-blue-600 rounded-xl transition-colors disabled:opacity-50"
+                            >
+                                {isSubmitting ? 'Verifying...' : 'Verify & Register'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

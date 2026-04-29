@@ -232,7 +232,7 @@ export default function Inquiries() {
                 to_name: viewInquiry.inquirer_name,
                 subject: `Reply to ${viewInquiry.subject}`,
                 message: message,
-                admin_name: 'PLV MedSync Admin'
+                admin_name: 'PLV MedSync Officer'
             };
 
             const response = await emailjs.send(SERVICE_ID, TEMPLATE_ID, templateParams, PUBLIC_KEY);
@@ -242,11 +242,11 @@ export default function Inquiries() {
             }
 
             await updateInquiryStatusDB(viewInquiry.id);
-            await addLog('Admin', `Replied to inquiry ${viewInquiry.id} from ${viewInquiry.inquirer_name}`);
+            await addLog('Officer', `Replied to inquiry ${viewInquiry.id} from ${viewInquiry.inquirer_name}`);
 
             await notifyIndividual(
                 viewInquiry.inquirer_id,
-                'Admin Replied to Inquiry',
+                'Officer Replied to Inquiry',
                 message,
                 'inquiry_reply',
                 viewInquiry.id

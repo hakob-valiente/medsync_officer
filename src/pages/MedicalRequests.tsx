@@ -3,9 +3,8 @@ import { useLocation } from 'react-router-dom';
 import {
     FileText, Search, ChevronDown, Plus, Upload,
     Eye, Calendar, User, Check, Phone, Package, ClipboardList, Edit, X, Pill,
-    ArrowUp, ArrowDown, Edit2, Trash2, Clock, MessageSquare, ExternalLink, ShieldCheck
+    ArrowUp, ArrowDown, Edit2, Trash2, Clock, MessageSquare, ExternalLink, ShieldCheck, Camera
 } from 'lucide-react';
-
 import { useStore } from '../hooks/useStore';
 import jsPDF from 'jspdf';
 import {
@@ -19,15 +18,196 @@ import {
     updateMedicineRequestStatusDB,
     deleteMedicineRequestDB,
     addMedicineRequestDB,
-    updateMedicineRequestDB
+    updateMedicineRequestDB,
+    genId
 } from '../store';
 import { notifyIndividual, type NotificationType } from '../lib/notifications';
 import { sendBrevoEmail } from '../services/brevo';
 import { ConfirmationDialog } from '../components/ui/ConfirmationDialog';
 import { PaginationControl } from '../components/ui/PaginationControl';
+import { QRScannerModal } from '../components/ui/QRScannerModal';
 import type { MedicalCertRequest, MedicineRequest, SystemUser } from '../types';
 
+// ---- View Medicine Request Modal ----
+export function ViewMedicineRequestModal({
+    req,
+    onClose,
+    onStatusChange,
+    onEdit,
+    onDelete
+}: {
+    req: MedicineRequest;
+    onClose: () => void;
+    onStatusChange: (status: string) => void;
+    onEdit: (req: MedicineRequest) => void;
+    onDelete: (req: MedicineRequest) => void;
+    isSubmitting?: boolean;
+}) {
+    return (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 modal-overlay" onClick={onClose}>
+            <div className="rounded-2xl shadow-2xl w-full max-w-lg fade-in overflow-hidden flex flex-col max-h-[90vh]"
+                style={{ background: 'var(--card-bg)' }}
+                onClick={(e) => e.stopPropagation()}>
+                <div className="px-8 py-6 border-b flex items-center justify-between shrink-0" style={{ borderColor: 'var(--border-light)', background: 'var(--bg-wash)' }}>
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>
+                            <Pill size={24} />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold tracking-tight " style={{ color: 'var(--text-primary)' }}>Medicine Request Details</h2>
+                            <p className="text-[11px] font-extrabold uppercase tracking-widest mt-0.5" style={{ color: 'var(--text-muted)' }}>Status: {req.status}</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:bg-red-50 hover:text-red-500" style={{ color: 'var(--text-muted)' }}>
+                        <X size={24} />
+                    </button>
+                </div>
 
+                <div className="p-8 space-y-6 flex-1 overflow-y-auto custom-scrollbar">
+                    <div className="space-y-4">
+                        <div className="p-5 rounded-2xl border space-y-4" style={{ background: 'var(--bg-wash)', borderColor: 'var(--border-light)' }}>
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Requester</p>
+                                <p className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>{req.profiles?.fullName || req.profiles?.full_name || 'N/A'}</p>
+                                <p className="text-xs font-semibold text-slate-500">Student ID: {req.profiles?.studentId || req.profiles?.student_number || 'N/A'}</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 pt-4 border-t" style={{ borderColor: 'var(--border-light)' }}>
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Medicine</p>
+                                    <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{req.medicine}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Quantity</p>
+                                    <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{req.medicine_qty} units</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Reason for Request</p>
+                            <div className="p-4 rounded-2xl border italic text-sm leading-relaxed" style={{ background: 'var(--bg-wash)', borderColor: 'var(--border-light)', color: 'var(--text-secondary)' }}>
+                                "{req.request_reason || 'No specific reason provided.'}"
+                            </div>
+                        </div>
+
+                        {req.reject_reason && (
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-red-400 mb-2 ml-1">Rejection Reason</p>
+                                <div className="p-4 rounded-2xl border bg-red-50 border-red-100 text-red-600 text-sm leading-relaxed">
+                                    "{req.reject_reason}"
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="p-6 border-t flex gap-3 shrink-0" style={{ background: 'var(--bg-wash)', borderColor: 'var(--border-light)' }}>
+                    <div className="flex-1 flex gap-2">
+                        {req.status === 'PENDING' && (
+                            <>
+                                <button
+                                    onClick={() => onStatusChange('REJECTED')}
+                                    className="flex-1 py-3 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-red-100"
+                                >
+                                    Reject
+                                </button>
+                                <button
+                                    onClick={() => onStatusChange('ACCEPTED')}
+                                    className="flex-[2] py-3 bg-blue-600 text-white hover:bg-blue-700 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-500/20"
+                                >
+                                    Approve Request
+                                </button>
+                            </>
+                        )}
+                        {req.status === 'ACCEPTED' && (
+                            <button
+                                onClick={() => onStatusChange('DISPENSED')}
+                                className="flex-1 py-3 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20"
+                            >
+                                Mark as Dispensed
+                            </button>
+                        )}
+                    </div>
+                    <div className="flex gap-2">
+                        <button onClick={() => onEdit(req)} className="w-11 h-11 rounded-xl flex items-center justify-center bg-white border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-200 transition-all">
+                            <Edit size={18} />
+                        </button>
+                        <button onClick={() => onDelete(req)} className="w-11 h-11 rounded-xl flex items-center justify-center bg-white border border-slate-200 text-slate-400 hover:text-red-600 hover:border-red-200 transition-all">
+                            <Trash2 size={18} />
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ---- Reject Reason Modal ----
+export function RejectReasonModal({
+    request,
+    onClose,
+    onConfirm,
+    isSubmitting,
+    title = "Reject Request"
+}: {
+    request: MedicalCertRequest | MedicineRequest | null;
+    onClose: () => void;
+    onConfirm: (reason: string) => void | Promise<void>;
+    isSubmitting: boolean;
+    title?: string;
+}) {
+    const [reason, setReason] = useState('');
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 modal-overlay" onClick={onClose}>
+            <div className="rounded-3xl shadow-2xl w-full max-w-md fade-in overflow-hidden" style={{ background: 'var(--card-bg)' }} onClick={(e) => e.stopPropagation()}>
+                <div className="p-6 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-light)', background: 'var(--bg-wash)' }}>
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-red-50 text-red-500">
+                            <X size={20} strokeWidth={3} />
+                        </div>
+                        <div>
+                            <h2 className="text-sm font-black uppercase tracking-widest" style={{ color: 'var(--text-primary)' }}>{title}</h2>
+                            <p className="text-[10px] font-bold text-slate-400 mt-0.5">DECLINING REQUEST FROM {request?.profiles?.fullName || request?.requester_name || 'N/A'}</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-slate-100" style={{ color: 'var(--text-muted)' }}>
+                        <X size={18} />
+                    </button>
+                </div>
+
+                <div className="p-6 space-y-4">
+                    <p className="text-xs font-semibold text-slate-500">Please provide a reason for rejecting this request. This will be sent to the student.</p>
+                    <textarea
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value)}
+                        placeholder="e.g. Medicine currently out of stock..."
+                        rows={4}
+                        className="w-full rounded-2xl px-5 py-4 text-sm font-medium outline-none border resize-none focus:ring-2 focus:ring-red-500/20 transition-all"
+                        style={{ background: 'var(--bg-wash)', borderColor: 'var(--border-light)', color: 'var(--text-primary)' }}
+                        autoFocus
+                    />
+                </div>
+
+                <div className="p-6 border-t flex gap-3" style={{ background: 'var(--bg-wash)', borderColor: 'var(--border-light)' }}>
+                    <button
+                        onClick={onClose}
+                        className="flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-slate-100 transition-all"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={() => onConfirm(reason)}
+                        disabled={!reason.trim() || isSubmitting}
+                        className="flex-[2] py-3 rounded-xl text-[10px] font-black uppercase tracking-widest bg-red-500 text-white shadow-lg shadow-red-500/20 hover:bg-red-600 transition-all disabled:opacity-50"
+                    >
+                        {isSubmitting ? 'Processing...' : 'Confirm Rejection'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 // ---- New Med Request Modal ----
 export function NewMedRequestModal({
@@ -768,227 +948,9 @@ function ViewCertRequestModal({
     );
 }
 
-// ---- View Medicine Request Modal ----
-export function ViewMedicineRequestModal({
-    request,
-    onClose,
-    onStatusChange,
-    onEdit,
-    onDelete,
-    isSubmitting
-}: {
-    request: MedicineRequest;
-    onClose: () => void;
-    onStatusChange: (status: string) => void;
-    onEdit: () => void;
-    onDelete: () => void;
-    isSubmitting: boolean;
-}) {
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay" onClick={onClose}>
-            <div className="rounded-3xl shadow-2xl w-full max-w-2xl fade-in overflow-hidden" style={{ background: 'var(--card-bg)' }} onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-between p-8 border-b" style={{ borderColor: 'var(--border-light)', background: 'var(--bg-wash)' }}>
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-100">
-                            <Package size={24} />
-                        </div>
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <h2 className="text-xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>Medicine Request</h2>
-                                {request.admin_created && (
-                                    <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-100 text-amber-700 border-2 border-amber-200 shadow-sm animate-pulse">Admin Created Request</span>
-                                )}
-                            </div>
-                            <p className="text-[11px] font-extrabold uppercase tracking-widest mt-0.5" style={{ color: 'var(--text-muted)' }}>Request Details Tracking #{request.id.substring(0, 8)}</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        {request.admin_created && (
-                            <div className="flex items-center gap-2 mr-2">
-                                <button onClick={onEdit} className="w-9 h-9 rounded-lg flex items-center justify-center transition-all bg-slate-100 text-slate-600 hover:bg-emerald-50 hover:text-emerald-600">
-                                    <Edit2 size={16} />
-                                </button>
-                                <button onClick={onDelete} className="w-9 h-9 rounded-lg flex items-center justify-center transition-all bg-slate-100 text-slate-600 hover:bg-red-50 hover:text-red-600">
-                                    <Trash2 size={16} />
-                                </button>
-                            </div>
-                        )}
-                        <button onClick={onClose} className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:bg-slate-200/50 hover:scale-110" style={{ color: 'var(--text-muted)' }}>
-                            <X size={24} />
-                        </button>
-                    </div>
-                </div>
 
-                <div className="p-8 space-y-8">
-                    <div className="grid grid-cols-2 gap-8">
-                        <div className="space-y-6">
-                            <div>
-                                <p className="text-[11px] font-semibold  uppercase tracking-widest mb-2">Requester Information</p>
-                                <div className="rounded-2xl p-4" style={{ background: 'var(--bg-wash)', border: '1px solid var(--border)' }}>
-                                    <h4 className="font-semibold text-lg" style={{ color: 'var(--text-primary)' }}>{request.requester_name}</h4>
-                                    <p className="text-xs font-bold mt-0.5" style={{ color: 'var(--text-muted)' }}>ID: {request.requester_student_number}</p>
-                                    <div className="flex items-center gap-2 mt-3 text-xs font-bold" style={{ color: 'var(--text-secondary)' }}>
-                                        <Phone size={12} /> {request.contact_number}
-                                    </div>
-                                </div>
-                            </div>
-                            <div>
-                                <p className="text-[11px] font-semibold  uppercase tracking-widest mb-2">Requested Date</p>
-                                <p className="text-sm font-bold  flex items-center gap-2">
-                                    <Calendar size={14} className="text-slate-300" />
-                                    {new Date(request.requested_tst).toLocaleString()}
-                                </p>
-                            </div>
-                        </div>
 
-                        <div className="space-y-6">
-                            <div>
-                                <p className="text-[11px] font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Medicine Requested</p>
-                                <div className="p-4 rounded-2xl border" style={{ background: 'var(--bg-wash)', border: '1px solid var(--border-light)' }}>
-                                    <h4 className="font-semibold text-lg" style={{ color: 'var(--text-primary)' }}>{request.medicine}</h4>
-                                    <p className="text-xs font-medium mt-0.5" style={{ color: 'var(--text-secondary)' }}>Quantity: {request.medicine_qty} units</p>
-                                </div>
-                            </div>
-                            <div>
-                                <p className="text-[11px] font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Reason for Request</p>
-                                <p className="text-sm font-medium leading-relaxed p-4 rounded-2xl border italic" style={{ background: 'var(--bg-wash)', border: '1px solid var(--border-light)', color: 'var(--text-secondary)' }}>
-                                    "{request.request_reason || 'No specific reason provided.'}"
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
-                <div className="p-6  border-t flex gap-3" style={{ borderColor: 'var(--border)' }}>
-                    <div className="flex-1 flex gap-2">
-                        {request.status === 'PENDING' && (
-                            <>
-                                <button
-                                    onClick={() => onStatusChange('REJECTED')}
-                                    disabled={isSubmitting}
-                                    className="flex-1 py-3 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-95 border border-red-100"
-                                >
-                                    Reject Request
-                                </button>
-                                <button
-                                    onClick={() => onStatusChange('ACCEPTED')}
-                                    disabled={isSubmitting}
-                                    className="flex-1 py-3 bg-emerald-500 text-white hover:bg-emerald-600 rounded-xl text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-95"
-                                >
-                                    Approve Request
-                                </button>
-                            </>
-                        )}
-                        {request.status === 'ACCEPTED' && (
-                            <>
-                                <button
-                                    onClick={() => onStatusChange('REJECTED')}
-                                    disabled={isSubmitting}
-                                    className="flex-1 py-3 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-95 border border-red-100"
-                                >
-                                    Reject Request
-                                </button>
-                                <button
-                                    onClick={() => onStatusChange('DISPENSED')}
-                                    disabled={isSubmitting}
-                                    className="flex-1 py-3 bg-blue-500 text-white hover:bg-blue-600 rounded-xl text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-95 shadow-md hover:shadow-lg hover:shadow-blue-500/20"
-                                >
-                                    Mark as Dispensed
-                                </button>
-                            </>
-                        )}
-                        {(request.status === 'DISPENSED' || request.status === 'REJECTED') && (
-                            <div className={`flex-1 py-3 flex items-center justify-center rounded-2xl border ${request.status === 'DISPENSED' ? 'bg-blue-50 border-blue-100' : 'bg-red-50 border-red-100'
-                                }`}>
-                                <span className={`text-[11px] font-bold uppercase tracking-widest ${request.status === 'DISPENSED' ? 'text-blue-600' : 'text-red-600'
-                                    }`}>
-                                    Status: {request.status}
-                                </span>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-// ---- Reject Reason Modal ----
-export function RejectReasonModal({
-    request,
-    onClose,
-    onConfirm,
-    isSubmitting
-}: {
-    request: MedicalCertRequest | MedicineRequest | null;
-    onClose: () => void;
-    onConfirm: (reason: string) => void;
-    isSubmitting: boolean;
-}) {
-    const [reason, setReason] = useState('');
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay" onClick={onClose}>
-            <div
-                className="rounded-2xl w-full max-w-md fade-in overflow-hidden"
-                style={{
-                    background: 'var(--card-bg)',
-                    boxShadow: 'var(--shadow-xl)',
-                }}
-                onClick={e => e.stopPropagation()}
-            >
-                <div className="p-6 flex items-center justify-between"
-                    style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-wash)' }}>
-                    <div>
-                        <h3 className="text-lg font-bold" style={{ color: 'var(--danger)' }}>Decline Request</h3>
-                        <p className="text-[11px] font-medium uppercase tracking-wider mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                            Decline request from {request?.requester_name}
-                        </p>
-                    </div>
-                    <button onClick={onClose} className="p-2 rounded-xl transition-colors"
-                        style={{ color: 'var(--text-muted)' }}
-                    >
-                        <X size={20} />
-                    </button>
-                </div>
-
-                <div className="p-6 space-y-4">
-                    <div className="p-3 rounded-xl border border-red-100 bg-red-50/30">
-                        <p className="text-xs text-red-800 leading-relaxed">
-                            Are you sure you want to decline this request? This action will notify the student.
-                        </p>
-                    </div>
-
-                    <div>
-                        <label className="block text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Reason for Rejection</label>
-                        <textarea
-                            value={reason}
-                            onChange={e => setReason(e.target.value)}
-                            placeholder="Please provide a brief explanation..."
-                            className="w-full rounded-xl px-4 py-3 text-sm font-medium outline-none transition-all min-h-[100px] resize-none"
-                            style={{
-                                background: 'var(--bg-wash)',
-                                border: '1px solid var(--border-light)',
-                                color: 'var(--text-primary)',
-                            }}
-                        />
-                    </div>
-                </div>
-
-                <div className="p-6 flex gap-3" style={{ background: 'var(--bg-wash)', borderTop: '1px solid var(--border)' }}>
-                    <button
-                        onClick={() => onConfirm(reason)}
-                        disabled={!reason.trim() || isSubmitting}
-                        className="flex-1 py-3.5 rounded-xl text-[12px] font-semibold uppercase tracking-wider transition-all active:scale-95 disabled:opacity-40"
-                        style={{ background: 'var(--danger)', color: 'white' }}
-                    >
-                        {isSubmitting ? 'Processing...' : 'Decline Request'}
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-}
 
 // ---- Main Medical Requests Page ----
 export default function MedicalRequests() {
@@ -1016,6 +978,11 @@ export default function MedicalRequests() {
     const [showNewMedRequestModal, setShowNewMedRequestModal] = useState(false);
     const [editCert, setEditCert] = useState<MedicalCertRequest | null>(null);
     const [editMed, setEditMed] = useState<MedicineRequest | null>(null);
+
+    // QR Scanner
+    const [showScanner, setShowScanner] = useState(false);
+    const [requestToConfirmDispense, setRequestToConfirmDispense] = useState<MedicineRequest | null>(null);
+    const [successToast, setSuccessToast] = useState({ show: false, message: '' });
 
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
@@ -1088,8 +1055,6 @@ export default function MedicalRequests() {
         ? filteredCerts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
         : filteredMeds.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-
-
     const handleUpdateStatus = async (reason?: string) => {
         const action = confirmAction || (rejectAction ? { ...rejectAction, status: 'REJECTED' } : null);
         if (!action || !action.req) return;
@@ -1098,7 +1063,7 @@ export default function MedicalRequests() {
         try {
             if (action.type === 'CERTS') {
                 await updateMedicalCertStatusDB(action.req.id, action.status, reason);
-                addLog('Admin', `Updated medical cert request status to ${action.status} for ${action.req.requester_name}`);
+                addLog('Officer', `Updated medical cert request status to ${action.status} for ${action.req.requester_name}`);
 
                 await notifyIndividual(
                     action.req.requester_id,
@@ -1109,12 +1074,18 @@ export default function MedicalRequests() {
                 );
             } else {
                 const medReq = action.req as MedicineRequest;
-                await updateMedicineRequestStatusDB(medReq.id, action.status, medReq.medicine, medReq.medicine_qty, reason);
-                addLog('Admin', `Updated medicine request status to ${action.status} for ${medReq.requester_name}`);
+                const newQR = (action.status === 'ACCEPTED' && !medReq.generated_qr) ? genId() : undefined;
+                
+                await updateMedicineRequestStatusDB(medReq.id, action.status, medReq.medicine, medReq.medicine_qty, reason, newQR);
+                addLog('Officer', `Updated medicine request status to ${action.status} for ${medReq.requester_name}`);
 
                 let notifyMsg = `The status of your medicine request for ${medReq.medicine} (${medReq.medicine_qty} units) has been moved to ${action.status}.`;
+                let notifType: NotificationType = `medicine_request_${action.status.toLowerCase()}` as NotificationType;
+
                 if (action.status === 'ACCEPTED') {
-                    notifyMsg = `Your medicine request for ${medReq.medicine} has been approved. Please proceed to the clinic to receive your medicine.`;
+                    // Send generated_qr as message and use medicine_dispense_qr as type
+                    notifyMsg = newQR || medReq.generated_qr || medReq.id;
+                    notifType = 'medicine_dispense_qr';
                     
                     // Send Brevo Email for Medicine Request Approved
                     const userEmail = users.find(u => u.id === medReq.requester_id)?.email;
@@ -1132,14 +1103,15 @@ export default function MedicalRequests() {
                         }).catch(e => console.error("Brevo Email Failed", e));
                     }
                 } else if (action.status === 'DISPENSED') {
-                    notifyMsg = `Your requested medicine ${medReq.medicine} has been dispensed successfully.`;
+                    notifyMsg = `Your medicine request for ${medReq.medicine} has been successfully dispensed.`;
+                    notifType = 'medicine_request_dispensed';
                 }
 
                 await notifyIndividual(
                     medReq.requester_id,
-                    'Medicine Request Update',
+                    action.status === 'ACCEPTED' ? 'Accepted Medicine Request QR Code' : 'Medicine Request Update',
                     notifyMsg,
-                    `medicine_request_${action.status.toLowerCase()}` as NotificationType,
+                    notifType,
                     medReq.id
                 );
             }
@@ -1159,7 +1131,7 @@ export default function MedicalRequests() {
         setIsSubmitting(true);
         try {
             await updateMedicalCertStatusDB(certToProcess.id, 'COMPLETED');
-            addLog('Admin', `Approved and generated medical cert for ${certToProcess.requester_name}`);
+            addLog('Officer', `Approved and generated medical cert for ${certToProcess.requester_name}`);
 
             await notifyIndividual(
                 certToProcess.requester_id,
@@ -1210,10 +1182,10 @@ export default function MedicalRequests() {
         try {
             if (confirmDelete.type === 'CERTS') {
                 await deleteMedicalCertRequestDB(confirmDelete.req.id);
-                addLog('Admin', `Deleted medical cert request for ${confirmDelete.req.requester_name}`);
+                addLog('Officer', `Deleted medical cert request for ${confirmDelete.req.requester_name}`);
             } else {
                 await deleteMedicineRequestDB(confirmDelete.req.id);
-                addLog('Admin', `Deleted medicine request for ${confirmDelete.req.requester_name}`);
+                addLog('Officer', `Deleted medicine request for ${confirmDelete.req.requester_name}`);
             }
             setConfirmDelete(null);
         } catch (e: any) {
@@ -1232,11 +1204,13 @@ export default function MedicalRequests() {
             certs: {
                 pending: certs.filter(r => r.status === 'PENDING').length,
                 completed: certs.filter(r => r.status === 'COMPLETED').length,
+                rejected: certs.filter(r => r.status === 'REJECTED').length,
                 total: certs.length
             },
             meds: {
                 pending: meds.filter(r => r.status === 'PENDING').length,
                 dispensed: meds.filter(r => r.status === 'DISPENSED').length,
+                rejected: meds.filter(r => r.status === 'REJECTED').length,
                 total: meds.length
             }
         };
@@ -1269,7 +1243,7 @@ export default function MedicalRequests() {
                         <div className="inline-flex p-0 rounded-2xl" style={{ background: 'var(--bg-wash)', border: '1px solid var(--border-light)' }}>
                             <button
                                 onClick={() => setActiveTab('CERTS')}
-                                className={`px-8 py-3 rounded-xl text-[12px] font-bold uppercase tracking-widest transition-all ${activeTab === 'CERTS' ? 'shadow-md scale-105 z-10' : 'opacity-60 hover:opacity-100'}`}
+                                className={`px-6 py-2.5 rounded-lg text-[12px] font-bold uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === 'CERTS' ? 'shadow-sm scale-105 z-10' : 'opacity-60 hover:opacity-100'}`}
                                 style={{
                                     background: activeTab === 'CERTS' ? 'var(--card-bg)' : 'transparent',
                                     color: activeTab === 'CERTS' ? 'var(--accent)' : 'var(--text-faint)',
@@ -1278,10 +1252,15 @@ export default function MedicalRequests() {
                                 }}
                             >
                                 Medical Certificates
+                                {stats.certs.pending > 0 && (
+                                    <span className="flex items-center justify-center min-w-[20px] h-5 rounded-full bg-red-500 text-white text-[10px] font-black px-1.5 shadow-sm">
+                                        {stats.certs.pending}
+                                    </span>
+                                )}
                             </button>
                             <button
                                 onClick={() => setActiveTab('MEDS')}
-                                className={`px-8 py-3 rounded-xl text-[12px] font-bold uppercase tracking-widest transition-all ${activeTab === 'MEDS' ? 'shadow-md scale-105 z-10' : 'opacity-60 hover:opacity-100'}`}
+                                className={`px-6 py-2.5 rounded-lg text-[12px] font-bold uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === 'MEDS' ? 'shadow-sm scale-105 z-10' : 'opacity-60 hover:opacity-100'}`}
                                 style={{
                                     background: activeTab === 'MEDS' ? 'var(--card-bg)' : 'transparent',
                                     color: activeTab === 'MEDS' ? 'var(--success)' : 'var(--text-faint)',
@@ -1290,31 +1269,36 @@ export default function MedicalRequests() {
                                 }}
                             >
                                 Medicine Requests
+                                {stats.meds.pending > 0 && (
+                                    <span className="flex items-center justify-center min-w-[20px] h-5 rounded-full bg-red-500 text-white text-[10px] font-black px-1.5 shadow-sm">
+                                        {stats.meds.pending}
+                                    </span>
+                                )}
                             </button>
                         </div>
 
                         {activeTab === 'CERTS' ? (
                             <button
                                 onClick={() => setShowNewRequestModal(true)}
-                                className="btn-cta flex items-center gap-2 px-6 py-3.5 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-blue-500/20 shrink-0"
+                                className="btn-cta flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all active:scale-95 shadow-md shadow-blue-500/10 shrink-0"
                             >
-                                <Plus size={18} /> Create Certificate Request
+                                <Plus size={16} /> Create Certificate Request
                             </button>
                         ) : (
                             <button
                                 onClick={() => setShowNewMedRequestModal(true)}
-                                className="btn-cta flex items-center gap-2 px-6 py-3.5 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-emerald-500/20 shrink-0"
+                                className="btn-cta flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all active:scale-95 shadow-md shadow-emerald-500/10 shrink-0"
                                 style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
                             >
-                                <Plus size={18} /> Create Medicine Request
+                                <Plus size={16} /> Create Medicine Request
                             </button>
                         )}
                     </div>
 
                     {/* Search & Filter Bar */}
-                    <div className="rounded-2xl p-4 flex flex-col md:flex-row flex-wrap items-stretch md:items-center gap-4 transition-colors"
+                    <div className="rounded-2xl p-4 flex flex-wrap items-center gap-4 transition-colors"
                         style={{ background: 'var(--card-bg)', border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-sm)' }}>
-                        <div className="relative flex-1 min-w-full md:min-w-[280px] md:max-w-md group">
+                        <div className="relative flex-1 max-w-sm group">
                             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors" style={{ color: 'var(--text-faint)' }} />
                             <input
                                 value={searchTerm}
@@ -1329,7 +1313,7 @@ export default function MedicalRequests() {
                                 <select
                                     value={statusFilter}
                                     onChange={(e) => setStatusFilter(e.target.value)}
-                                    className="appearance-none rounded-xl px-4 py-2 pr-9 text-[11px] font-bold uppercase tracking-wider outline-none transition-all cursor-pointer"
+                                    className="appearance-none rounded-xl px-5 py-2.5 pr-10 text-xs font-bold uppercase tracking-wider outline-none transition-all cursor-pointer"
                                     style={{ background: 'var(--bg-wash)', border: '1px solid var(--border-light)', color: 'var(--text-secondary)' }}
                                 >
                                     <option value="ALL">Status: All</option>
@@ -1344,18 +1328,24 @@ export default function MedicalRequests() {
                                     )}
                                     <option value="REJECTED">Request Declined</option>
                                 </select>
-                                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+                                <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
                             </div>
 
                             <div className="flex items-center gap-2 border-l pl-3 ml-1" style={{ borderColor: 'var(--border-light)' }}>
-                                
-                                
+                                {activeTab === 'MEDS' && (
+                                    <button
+                                        onClick={() => setShowScanner(true)}
+                                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all shadow-sm border bg-blue-600 text-white border-blue-500 hover:bg-blue-700 active:scale-95"
+                                    >
+                                        <Camera size={15} /> Scan Medicine QR
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
 
                     {/* Requests Table */}
-                    <div className="mobile-card-table w-full rounded-3xl overflow-hidden flex flex-col shadow-xl" style={{ background: 'var(--card-bg)', border: '1px solid var(--border-light)', minHeight: '520px' }}>
+                    <div className="w-full rounded-2xl overflow-hidden flex flex-col shadow-lg" style={{ background: 'var(--card-bg)', border: '1px solid var(--border-light)', minHeight: '520px' }}>
                         <div className="flex-1 overflow-x-auto">
                             <table className="w-full border-collapse medical-requests-card-table">
                                 <thead>
@@ -1391,7 +1381,7 @@ export default function MedicalRequests() {
                                     ) : (
                                         paginatedItems.map(req => (
                                             <tr key={req.id} className="transition-all group" style={{ borderBottom: '1px solid var(--border-light)' }}>
-                                                <td data-label="Student Details" className="px-6 py-4">
+                                                <td className="px-6 py-4">
                                                     <div className="flex items-center gap-4">
                                                         <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-sm border overflow-hidden ${activeTab === 'CERTS' ? 'bg-blue-50 text-blue-500 border-blue-100' : 'bg-emerald-50 text-emerald-500 border-emerald-100'}`}>
                                                             {req.profiles?.profile_picture_url ? (
@@ -1419,7 +1409,7 @@ export default function MedicalRequests() {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td data-label="Requested Date" className="px-6 py-4">
+                                                <td className="px-6 py-4">
                                                     <div className="flex flex-col">
                                                         <span className="text-sm font-semibold text-slate-600">
                                                             {new Date(req.requested_tst).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -1429,7 +1419,7 @@ export default function MedicalRequests() {
                                                         </span>
                                                     </div>
                                                 </td>
-                                                <td data-label={activeTab === 'CERTS' ? 'Purpose' : 'Item Info'} className="px-6 py-4 max-w-[280px]">
+                                                <td className="px-6 py-4 max-w-[280px]">
                                                     {activeTab === 'CERTS' ? (
                                                         <div className="flex flex-col">
                                                             <span className="text-sm font-medium text-slate-500 line-clamp-1 italic">
@@ -1449,7 +1439,7 @@ export default function MedicalRequests() {
                                                         </div>
                                                     )}
                                                 </td>
-                                                <td data-label="Status" className="px-6 py-4">
+                                                <td className="px-6 py-4">
                                                     <span className={`status-badge-modern ${req.status === 'PENDING' ? 'status-badge-pending' :
                                                         req.status === 'COMPLETED' ? 'status-badge-completed' :
                                                             req.status === 'ACCEPTED' ? 'status-badge-upcoming' :
@@ -1459,7 +1449,7 @@ export default function MedicalRequests() {
                                                         {req.status === 'ACCEPTED' ? 'Approved' : req.status.charAt(0) + req.status.slice(1).toLowerCase()}
                                                     </span>
                                                 </td>
-                                                <td data-label="Actions" className="px-6 py-4">
+                                                <td className="px-6 py-4">
                                                     <div className="flex items-center justify-end gap-2.5">
                                                         {req.status === 'PENDING' && (
                                                             <button
@@ -1478,13 +1468,9 @@ export default function MedicalRequests() {
                                                             </button>
                                                         )}
                                                         {req.status === 'ACCEPTED' && activeTab === 'MEDS' && (
-                                                            <button
-                                                                onClick={() => setConfirmAction({ req, status: 'DISPENSED', type: 'MEDS' })}
-                                                                className="action-icon-button bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-100 shadow-md hover:shadow-blue-500/20"
-                                                                title="Dispense Medicine"
-                                                            >
-                                                                <Package size={16} />
-                                                            </button>
+                                                            <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-blue-50 text-blue-600 text-[10px] font-bold border border-blue-100">
+                                                                <Clock size={12} /> Ready for QR Scan
+                                                            </div>
                                                         )}
                                                         <button
                                                             onClick={() => activeTab === 'CERTS' ? setViewCert(req as MedicalCertRequest) : setViewMed(req as MedicineRequest)}
@@ -1550,7 +1536,7 @@ export default function MedicalRequests() {
                                 </div>
                             </div>
 
-                            <div className="p-4 rounded-xl flex items-center justify-between" style={{ background: 'var(--bg-wash)' }}>
+                             <div className="p-4 rounded-xl flex items-center justify-between" style={{ background: 'var(--bg-wash)' }}>
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-50 text-emerald-600 border border-emerald-100">
                                         <Check size={18} />
@@ -1561,6 +1547,22 @@ export default function MedicalRequests() {
                                         </p>
                                         <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
                                             {activeTab === 'CERTS' ? stats.certs.completed : stats.meds.dispensed}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-4 rounded-xl flex items-center justify-between" style={{ background: 'var(--bg-wash)' }}>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-red-50 text-red-600 border border-red-100">
+                                        <X size={18} />
+                                    </div>
+                                    <div>
+                                        <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                                            Rejected Requests
+                                        </p>
+                                        <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+                                            {activeTab === 'CERTS' ? stats.certs.rejected : stats.meds.rejected}
                                         </p>
                                     </div>
                                 </div>
@@ -1677,19 +1679,22 @@ export default function MedicalRequests() {
                 if (!activeMed) return null;
                 return (
                     <ViewMedicineRequestModal
-                        request={activeMed}
+                        req={activeMed}
                         onClose={() => setViewMed(null)}
-                        onEdit={() => {
-                            setEditMed(activeMed);
+                        onEdit={(r) => {
+                            setEditMed(r);
                             setViewMed(null);
                         }}
-                        onDelete={() => {
-                            setConfirmDelete({ req: activeMed, type: 'MEDS' });
+                        onDelete={(r) => {
+                            setConfirmDelete({ req: r, type: 'MEDS' });
                             setViewMed(null);
                         }}
                         onStatusChange={(status) => {
                             if (status === 'REJECTED') {
                                 setRejectAction({ req: activeMed, type: 'MEDS' });
+                                setViewMed(null);
+                            } else if (status === 'DISPENSED') {
+                                setShowScanner(true);
                                 setViewMed(null);
                             } else {
                                 setConfirmAction({ req: activeMed, status, type: 'MEDS' });
@@ -1699,6 +1704,28 @@ export default function MedicalRequests() {
                     />
                 );
             })()}
+
+            {showScanner && (
+                <QRScannerModal 
+                    onClose={() => setShowScanner(false)}
+                    onScan={async (scannedQR) => {
+                        console.log("Extracted QR String:", scannedQR);
+                        // Find matching request by generated_qr (or ID if in demo mode)
+                        const isDemo = import.meta.env.VITE_DEMO_MODE === 'true';
+                        const matchingReq = medicineRequests.find(r => 
+                            r.generated_qr === scannedQR || (isDemo && r.id === scannedQR)
+                        );
+                        
+                        if (matchingReq) {
+                            setRequestToConfirmDispense(matchingReq);
+                            setShowScanner(false);
+                        } else {
+                            alert("Invalid QR Code: No matching medicine request found.");
+                            setShowScanner(false);
+                        }
+                    }}
+                />
+            )}
 
             {(() => {
                 const ca = confirmAction;
@@ -1744,12 +1771,12 @@ export default function MedicalRequests() {
                         try {
                             if (editCert) {
                                 await updateMedicalCertRequestDB(editCert.id, data);
-                                addLog('Admin', `Updated medical cert request ${editCert.id}`);
+                                addLog('Officer', `Updated medical cert request ${editCert.id}`);
                                 setEditCert(null);
                             } else {
                                 await addMedicalCertRequestDB({ ...data, admin_created: true, status: 'PENDING' });
                                 const requesterName = users.find(u => u.id === data.requester_id)?.fullName || data.requester_id;
-                                addLog('Admin', `Manually created medical cert request for: ${requesterName}`);
+                                addLog('Officer', `Manually created medical cert request for: ${requesterName}`);
                             }
                             setShowNewRequestModal(false);
                         } catch (e: any) {
@@ -1774,12 +1801,12 @@ export default function MedicalRequests() {
                         try {
                             if (editMed) {
                                 await updateMedicineRequestDB(editMed.id, data);
-                                addLog('Admin', `Updated medicine request ${editMed.id}`);
+                                addLog('Officer', `Updated medicine request ${editMed.id}`);
                                 setEditMed(null);
                             } else {
                                 await addMedicineRequestDB({ ...data, admin_created: true, status: 'PENDING' });
                                 const requesterName = users.find(u => u.id === data.requester_id)?.fullName || data.requester_id;
-                                addLog('Admin', `Manually created medicine request for: ${requesterName}`);
+                                addLog('Officer', `Manually created medicine request for: ${requesterName}`);
                             }
                             setShowNewMedRequestModal(false);
                         } catch (e: any) {
@@ -1801,6 +1828,130 @@ export default function MedicalRequests() {
                 onClose={() => setConfirmDelete(null)}
                 onConfirm={handleDeleteRequest}
             />
+
+            {successToast.show && (
+                <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[200] pointer-events-none">
+                    <div className="bg-white rounded-2xl shadow-2xl px-6 py-3 border border-emerald-100 flex items-center gap-3 animate-bounce-subtle">
+                        <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center">
+                            <Check size={18} strokeWidth={3} />
+                        </div>
+                        <span className="text-sm font-bold text-slate-800">{successToast.message}</span>
+                    </div>
+                </div>
+            )}
+
+            {requestToConfirmDispense && (
+                <DispenseConfirmationModal 
+                    request={requestToConfirmDispense}
+                    isSubmitting={isSubmitting}
+                    onClose={() => setRequestToConfirmDispense(null)}
+                    onConfirm={async () => {
+                        setIsSubmitting(true);
+                        try {
+                            await updateMedicineRequestStatusDB(requestToConfirmDispense.id, 'DISPENSED', requestToConfirmDispense.medicine, requestToConfirmDispense.medicine_qty);
+                            addLog('Officer', `QR Confirmation Success: Dispensed ${requestToConfirmDispense.medicine} to ${requestToConfirmDispense.requester_name}`);
+                            
+                            // Notify student
+                            await notifyIndividual(
+                                requestToConfirmDispense.requester_id,
+                                "Medicine Successfully Dispensed",
+                                `Your medicine request for ${requestToConfirmDispense.medicine} has been successfully dispensed.`,
+                                'medicine_request_dispensed',
+                                requestToConfirmDispense.id
+                            );
+
+                            setSuccessToast({ show: true, message: `Successfully Dispensed ${requestToConfirmDispense.medicine}!` });
+                            setTimeout(() => setSuccessToast({ show: false, message: '' }), 3000);
+                            setRequestToConfirmDispense(null);
+                        } catch (e: any) {
+                            alert("Dispense failed: " + e.message);
+                        } finally {
+                            setIsSubmitting(false);
+                        }
+                    }}
+                />
+            )}
+        </div>
+    );
+}
+
+function DispenseConfirmationModal({
+    request,
+    onClose,
+    onConfirm,
+    isSubmitting
+}: {
+    request: MedicineRequest;
+    onClose: () => void;
+    onConfirm: () => Promise<void>;
+    isSubmitting: boolean;
+}) {
+    return (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="p-6 border-b" style={{ borderColor: 'var(--border-light)' }}>
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <Package size={20} />
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-black uppercase tracking-widest text-slate-800">Confirm Dispensing</h3>
+                            <p className="text-[10px] font-bold text-slate-400">Please verify student details below</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="p-6 space-y-4">
+                    <div className="space-y-3">
+                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-1">Student Information</label>
+                            <div className="space-y-1">
+                                <p className="text-xs font-bold text-slate-800">{request.requester_name || 'N/A'}</p>
+                                <p className="text-[10px] font-semibold text-slate-500">ID: {request.requester_student_number || 'N/A'}</p>
+                                <p className="text-[10px] font-semibold text-slate-500">Contact: {request.contact_number || 'N/A'}</p>
+                            </div>
+                        </div>
+
+                        <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-100">
+                            <label className="text-[9px] font-black uppercase tracking-widest text-blue-400 block mb-1">Medicine Details</label>
+                            <div className="space-y-1">
+                                <div className="flex justify-between items-center">
+                                    <p className="text-xs font-bold text-slate-800">{request.medicine}</p>
+                                    <span className="px-2 py-0.5 rounded-lg bg-blue-100 text-blue-700 text-[10px] font-black uppercase">Qty: {request.medicine_qty}</span>
+                                </div>
+                                <p className="text-[10px] font-semibold text-slate-500">Campus: {request.campus || 'N/A'}</p>
+                                <div className="mt-2 pt-2 border-t border-blue-100/50">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Reason</p>
+                                    <p className="text-[10px] italic text-slate-600 leading-relaxed">"{request.request_reason || 'No reason specified'}"</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="p-6 bg-slate-50 flex gap-3">
+                    <button
+                        onClick={onClose}
+                        disabled={isSubmitting}
+                        className="flex-1 py-3.5 rounded-xl text-[11px] font-bold uppercase tracking-widest text-slate-400 hover:bg-slate-100 transition-all"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        disabled={isSubmitting}
+                        className="flex-[2] py-3.5 rounded-xl text-[11px] font-bold uppercase tracking-widest bg-blue-600 text-white shadow-lg shadow-blue-500/20 hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center gap-2"
+                    >
+                        {isSubmitting ? (
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                            <>
+                                <Check size={16} strokeWidth={3} /> Confirm Dispense
+                            </>
+                        )}
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }

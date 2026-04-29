@@ -41,7 +41,8 @@ function getInitialState(): AppState {
         notifications: [],
         readNotificationIds: [],
         runLogs: [],
-        mealLogs: []
+        mealLogs: [],
+        emergencyReports: []
     };
 
     try {
@@ -53,7 +54,8 @@ function getInitialState(): AppState {
                 ...parsed,
                 logs: [], // Do not load logs from local storage
                 clinics: parsed.clinics || seedClinics,
-                visitRecords: parsed.visitRecords || []
+                visitRecords: parsed.visitRecords || [],
+                emergencyReports: []
             };
         }
     } catch (_e) { }
@@ -90,6 +92,7 @@ function setupRealtimeSubscriptions() {
             case 'notifications': fetchNotificationsFromDB(); break;
             case 'run_logs': fetchRunLogsFromDB(); break;
             case 'meal_logs': fetchMealLogsFromDB(); break;
+            case 'emergency_reports': fetchEmergencyReportsFromDB(); break;
             case 'admin_notification_reads': {
                 fetchAdminReadNotificationsFromDB();
                 break;
@@ -190,7 +193,9 @@ export function nowISO(): string {
 }
 
 export function setAdvisories(advisories: HealthAdvisory[]) {
-    store.setState(prev => ({ ...prev, advisories }));
+    // Final safety de-duplication by title to ensure clean state
+    const unique = Array.from(new Map(advisories.map(a => [a.title.toLowerCase().trim(), a])).values());
+    store.setState(prev => ({ ...prev, advisories: unique }));
 }
 
 export async function addLog(actor: string, action: string): Promise<void> {
@@ -902,7 +907,7 @@ export async function fetchMedicineRequestsFromDB() {
     }
 }
 
-export async function updateMedicineRequestStatusDB(id: string, status: string, medicineName?: string, qty?: number, rejection_reason?: string) {
+export async function updateMedicineRequestStatusDB(id: string, status: string, medicineName?: string, qty?: number, rejection_reason?: string, generated_qr?: string) {
     try {
         const payload: any = { status };
         if (status === 'DISPENSED') {
@@ -910,6 +915,9 @@ export async function updateMedicineRequestStatusDB(id: string, status: string, 
         }
         if (status === 'REJECTED' && rejection_reason) {
             payload.rejection_reason = rejection_reason;
+        }
+        if (generated_qr) {
+            payload.generated_qr = generated_qr;
         }
         const { error } = await supabase.from('medicine_requests').update(payload).eq('id', id);
         if (error) throw error;
@@ -1347,6 +1355,41 @@ export async function updateInquiryStatusDB(id: string) {
     }
 }
 
+// ---- Emergency Reports DB Actions ----
+
+export async function fetchEmergencyReportsFromDB() {
+    try {
+        const { data, error } = await supabase
+            .from('emergency_reports')
+            .select('*, profiles(first_name, last_name, suffix, student_number, profile_picture_url)')
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        if (data) {
+            const mapped = data.map((row: any) => ({
+                ...row,
+                requester_name: row.profiles 
+                    ? [row.profiles.first_name, row.profiles.last_name, row.profiles.suffix].filter(Boolean).join(' ')
+                    : 'Unknown requester',
+            }));
+            store.setState(prev => ({ ...prev, emergencyReports: mapped }));
+        }
+    } catch (e) {
+        console.error('Error fetching emergency reports:', e);
+    }
+}
+
+export async function updateEmergencyReportStatusDB(id: string, status: string) {
+    try {
+        const { error } = await supabase.from('emergency_reports').update({ status, updated_at: nowISO() }).eq('id', id);
+        if (error) throw error;
+        await fetchEmergencyReportsFromDB();
+        await addLog('MedSync System', `Emergency Report status updated to ${status} for ID: ${id}`);
+    } catch (e) {
+        console.error('Error updating emergency report status:', e);
+        throw e;
+    }
+}
+
 // =====================
 // BOOTSTRAP DATA
 // =====================
@@ -1373,7 +1416,8 @@ export async function bootstrapSessionData() {
             fetchAcceptedAppointmentsFromDB(),
             fetchInquiriesFromDB(),
             fetchNotificationsFromDB(),
-            fetchAdminReadNotificationsFromDB()
+            fetchAdminReadNotificationsFromDB(),
+            fetchEmergencyReportsFromDB()
         ]);
         console.log('✅ Global background data fetch complete.');
     } catch (e) {

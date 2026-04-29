@@ -16,7 +16,7 @@ export function CalendarWidget() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
-    
+
     // Form state handling
     const [isEditing, setIsEditing] = useState(false);
     const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
@@ -25,6 +25,7 @@ export function CalendarWidget() {
         description: '',
         startTime: '',
         endTime: '',
+        isAllDay: true, // Default to true
     });
     const [successToast, setSuccessToast] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
     const [confirmAction, setConfirmAction] = useState<{ show: boolean; type: 'save' | 'delete'; payload?: any }>({ show: false, type: 'save' });
@@ -37,23 +38,24 @@ export function CalendarWidget() {
     const handleDateSelect = (selectInfo: any) => {
         setIsEditing(false);
         setSelectedEventId(null);
-        
-        // Auto-fill form times based on click
-        const startStr = selectInfo.startStr.includes('T') ? selectInfo.startStr.slice(0, 16) : selectInfo.startStr + 'T08:00';
-        const endStr = selectInfo.endStr.includes('T') ? selectInfo.endStr.slice(0, 16) : selectInfo.startStr + 'T09:00';
-        
-        setFormData({ title: '', description: '', startTime: startStr, endTime: endStr });
+
+        // For all-day selection, FullCalendar provides dates like "2026-04-27"
+        // We ensure we have a valid ISO-like string for our inputs
+        const startStr = selectInfo.startStr.includes('T') ? selectInfo.startStr.slice(0, 16) : selectInfo.startStr + 'T00:00';
+        const endStr = selectInfo.endStr.includes('T') ? selectInfo.endStr.slice(0, 16) : (selectInfo.endStr ? new Date(new Date(selectInfo.endStr).getTime() - 86400000).toISOString().slice(0, 10) : selectInfo.startStr) + 'T23:59';
+
+        setFormData({ title: '', description: '', startTime: startStr, endTime: endStr, isAllDay: true });
         setIsModalOpen(true);
     };
 
     // Handle clicking on an existing event
     const handleEventClick = (clickInfo: any) => {
         const { event } = clickInfo;
-        
+
         setIsEditing(true);
         // The id from google calendar events looks like strings. We need it for updates and deletes.
         setSelectedEventId(event.id);
-        
+
         // Format dates into local datetime-local format string (YYYY-MM-DDTHH:mm)
         const formatForInput = (date: Date | null) => {
             if (!date) return '';
@@ -62,14 +64,15 @@ export function CalendarWidget() {
             dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset());
             return dt.toISOString().slice(0, 16);
         };
-        
+
         setFormData({
             title: event.title,
             description: event.extendedProps.description || '',
             startTime: formatForInput(event.start),
             endTime: formatForInput(event.end || event.start), // In case end is null
+            isAllDay: event.allDay,
         });
-        
+
         setIsModalOpen(true);
         // Prevent browser navigation if the event has a url
         clickInfo.jsEvent.preventDefault();
@@ -84,8 +87,9 @@ export function CalendarWidget() {
             const payload = {
                 title: formData.title || '(No title)',
                 description: formData.description,
-                startTime: new Date(formData.startTime).toISOString(),
-                endTime: new Date(formData.endTime).toISOString(),
+                startTime: formData.isAllDay ? formData.startTime.split('T')[0] + 'T00:00:00' : new Date(formData.startTime).toISOString(),
+                endTime: formData.isAllDay ? formData.endTime.split('T')[0] + 'T23:59:59' : new Date(formData.endTime).toISOString(),
+                isAllDay: formData.isAllDay,
                 ...(isEditing && selectedEventId ? { eventId: selectedEventId } : {})
             };
 
@@ -111,9 +115,9 @@ export function CalendarWidget() {
                 }
                 return;
             }
-            
+
             calendarRef.current?.getApi().refetchEvents();
-            
+
             closeModal();
             setConfirmAction({ show: false, type: 'save' });
             setSuccessToast({ show: true, message: isEditing ? 'Event updated successfully' : 'Event created successfully!' });
@@ -129,7 +133,7 @@ export function CalendarWidget() {
     // Handle Delete
     const handleDeleteEvent = async () => {
         if (!selectedEventId) return;
-        
+
         setIsDeleting(true);
         try {
             const { error } = await supabase.functions.invoke('delete-google-event', {
@@ -137,7 +141,7 @@ export function CalendarWidget() {
             });
 
             if (error) throw error;
-            
+
             calendarRef.current?.getApi().refetchEvents();
             closeModal();
             setConfirmAction({ show: false, type: 'delete' });
@@ -153,7 +157,7 @@ export function CalendarWidget() {
 
     const closeModal = () => {
         setIsModalOpen(false);
-        setFormData({ title: '', description: '', startTime: '', endTime: '' });
+        setFormData({ title: '', description: '', startTime: '', endTime: '', isAllDay: true });
         setIsEditing(false);
         setSelectedEventId(null);
     };
@@ -164,11 +168,10 @@ export function CalendarWidget() {
         center: 'title',
         right: 'dayGridMonth,timeGridWeek,timeGridDay'
     }), []);
-
     const localEvents = useMemo(() => {
         return acceptedAppointments.map(app => ({
             id: `local-${app.id}`,
-            title: `${app.requester_name} (${app.category})`,
+            title: app.requester_name,
             start: app.appointment_sched,
             // default to 30 mins if end not specified
             end: new Date(new Date(app.appointment_sched).getTime() + 30 * 60000).toISOString(),
@@ -207,7 +210,22 @@ export function CalendarWidget() {
                 </span>
             </div>
 
-            <div className="calendar-container relative flex-1" style={{ minHeight: '500px' }}>
+            <div className="flex flex-wrap items-center gap-4 mb-5 pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-[#10b981]" />
+                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Clinic Appointment</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-[#3b82f6]" />
+                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Dental Appointment</span>
+                </div>
+                <div className="flex items-center gap-2 border-l border-slate-200 ps-4">
+                    <div className="w-3 h-3 rounded-full bg-[#6366f1]" />
+                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Events</span>
+                </div>
+            </div>
+
+            <div className="calendar-container overflow-auto relative flex-1" style={{ minHeight: '500px' }}>
                 <FullCalendar
                     ref={calendarRef}
                     plugins={plugins}
@@ -215,7 +233,7 @@ export function CalendarWidget() {
                     headerToolbar={headerToolbar}
                     googleCalendarApiKey={GOOGLE_API_KEY}
                     eventSources={eventSources}
-                    eventColor="#0d9488"
+                    eventColor="#6366f1"
                     eventTextColor="#ffffff"
                     selectable={true}
                     selectMirror={true}
@@ -237,8 +255,8 @@ export function CalendarWidget() {
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-transparent" onClick={closeModal}>
                     {/* Shadow overlay logic but keeping the center box like Google */}
-                    <div 
-                        className="bg-white rounded-lg shadow-2xl w-full max-w-[450px] overflow-hidden relative" 
+                    <div
+                        className="bg-white rounded-lg shadow-2xl w-full max-w-[450px] overflow-hidden relative"
                         style={{ boxShadow: '0 24px 38px 3px rgba(0,0,0,0.14), 0 9px 46px 8px rgba(0,0,0,0.12), 0 11px 15px -7px rgba(0,0,0,0.2)' }}
                         onClick={e => e.stopPropagation()}
                     >
@@ -249,9 +267,9 @@ export function CalendarWidget() {
                             </div>
                             <div className="flex items-center gap-1">
                                 {isEditing && (
-                                    <button 
+                                    <button
                                         type="button"
-                                        onClick={() => setConfirmAction({ show: true, type: 'delete' })} 
+                                        onClick={() => setConfirmAction({ show: true, type: 'delete' })}
                                         disabled={isDeleting}
                                         className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-black/10 text-slate-600 transition-colors"
                                         title="Delete event"
@@ -264,30 +282,23 @@ export function CalendarWidget() {
                                 </button>
                             </div>
                         </div>
-                        
-                        <form 
+
+                        <form
                             onSubmit={(e) => {
                                 e.preventDefault();
                                 setConfirmAction({ show: true, type: 'save' });
-                            }} 
+                            }}
                             className="p-6 pt-2 space-y-5"
                         >
-                            {/* ... existing fields ... */}
                             {/* Title Input */}
                             <div className="pt-2">
-                                <input 
+                                <input
                                     className="w-full text-[23px] text-slate-800 placeholder-slate-500 border-b-2 border-transparent hover:border-slate-200 focus:border-[#1a73e8] outline-none transition-colors pb-1 bg-transparent"
                                     placeholder="Add title"
                                     value={formData.title}
                                     onChange={e => setFormData(p => ({ ...p, title: e.target.value }))}
                                     autoFocus
                                 />
-                            </div>
-
-                            {/* Options Buttons */}
-                            <div className="flex gap-2">
-                                <button type="button" className="px-3 py-1.5 bg-[#e8f0fe] text-[#1a73e8] text-sm font-medium rounded-md">Event</button>
-                                <button type="button" className="px-3 py-1.5 hover:bg-slate-100 text-slate-600 text-sm font-medium rounded-md transition-colors">Task</button>
                             </div>
 
                             {/* Date Selector */}
@@ -316,68 +327,92 @@ export function CalendarWidget() {
                                 </div>
                             </div>
 
-                            {/* Time Selectors */}
-                            <div className="flex items-start gap-3 text-sm text-slate-700 mt-4">
-                                <div className="w-5 flex justify-center text-slate-400 mt-2.5">
-                                    <Clock size={18} />
+                            {/* All Day Toggle & Time Selectors */}
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-3 text-sm text-slate-700 ml-8">
+                                    <label className="flex items-center gap-2 cursor-pointer group">
+                                        <div className="relative flex items-center justify-center">
+                                            <input
+                                                type="checkbox"
+                                                className="appearance-none w-4 h-4 rounded border border-slate-300 transition-all cursor-pointer"
+                                                style={{ background: formData.isAllDay ? '#1a73e8' : 'transparent', borderColor: formData.isAllDay ? '#1a73e8' : '#cbd5e1' }}
+                                                checked={formData.isAllDay}
+                                                onChange={e => setFormData(p => ({ ...p, isAllDay: e.target.checked }))}
+                                            />
+                                            <Check 
+                                                size={12} 
+                                                className={`absolute text-white pointer-events-none transition-opacity ${formData.isAllDay ? 'opacity-100' : 'opacity-0'}`} 
+                                                strokeWidth={4} 
+                                            />
+                                        </div>
+                                        <span className="text-slate-600 font-medium group-hover:text-slate-800 transition-colors">All day</span>
+                                    </label>
                                 </div>
-                                <div className="flex-1 grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Start Time</label>
-                                        <input
-                                            type="time"
-                                            required
-                                            className="w-full py-2 px-3 bg-slate-50 hover:bg-slate-100 rounded-lg outline-none border border-slate-200 focus:border-[#1a73e8] transition-colors text-sm font-medium text-slate-700"
-                                            value={formData.startTime ? formData.startTime.slice(11, 16) : ''}
-                                            onChange={e => {
-                                                const date = formData.startTime?.slice(0, 10) || new Date().toISOString().slice(0, 10);
-                                                setFormData(p => ({ ...p, startTime: date + 'T' + e.target.value }));
-                                            }}
-                                        />
-                                        {formData.startTime?.slice(11, 16) && (
-                                            <p className="text-[10px] font-semibold mt-1 text-slate-400">
-                                                {(() => {
-                                                    const [h, m] = (formData.startTime.slice(11, 16)).split(':').map(Number);
-                                                    const ampm = h >= 12 ? 'PM' : 'AM';
-                                                    const h12 = h % 12 || 12;
-                                                    return `${h12}:${m.toString().padStart(2,'0')} ${ampm}`;
-                                                })()}
-                                            </p>
-                                        )}
+
+                                {!formData.isAllDay && (
+                                    <div className="flex items-start gap-3 text-sm text-slate-700">
+                                        <div className="w-5 flex justify-center text-slate-400 mt-2.5">
+                                            <Clock size={18} />
+                                        </div>
+                                        <div className="flex-1 grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Start Time</label>
+                                                <input
+                                                    type="time"
+                                                    required
+                                                    className="w-full py-2 px-3 bg-slate-50 hover:bg-slate-100 rounded-lg outline-none border border-slate-200 focus:border-[#1a73e8] transition-colors text-sm font-medium text-slate-700"
+                                                    value={formData.startTime ? formData.startTime.slice(11, 16) : ''}
+                                                    onChange={e => {
+                                                        const date = formData.startTime?.slice(0, 10) || new Date().toISOString().slice(0, 10);
+                                                        setFormData(p => ({ ...p, startTime: date + 'T' + e.target.value }));
+                                                    }}
+                                                />
+                                                {formData.startTime?.slice(11, 16) && (
+                                                    <p className="text-[10px] font-semibold mt-1 text-slate-400">
+                                                        {(() => {
+                                                            const [h, m] = (formData.startTime.slice(11, 16)).split(':').map(Number);
+                                                            const ampm = h >= 12 ? 'PM' : 'AM';
+                                                            const h12 = h % 12 || 12;
+                                                            return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`;
+                                                        })()}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">End Time</label>
+                                                <input
+                                                    type="time"
+                                                    required
+                                                    className="w-full py-2 px-3 bg-slate-50 hover:bg-slate-100 rounded-lg outline-none border border-slate-200 focus:border-[#1a73e8] transition-colors text-sm font-medium text-slate-700"
+                                                    value={formData.endTime ? formData.endTime.slice(11, 16) : ''}
+                                                    onChange={e => {
+                                                        const date = formData.endTime?.slice(0, 10) || formData.startTime?.slice(0, 10) || new Date().toISOString().slice(0, 10);
+                                                        setFormData(p => ({ ...p, endTime: date + 'T' + e.target.value }));
+                                                    }}
+                                                />
+                                                {formData.endTime?.slice(11, 16) && (
+                                                    <p className="text-[10px] font-semibold mt-1 text-slate-400">
+                                                        {(() => {
+                                                            const [h, m] = (formData.endTime.slice(11, 16)).split(':').map(Number);
+                                                            const ampm = h >= 12 ? 'PM' : 'AM';
+                                                            const h12 = h % 12 || 12;
+                                                            return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`;
+                                                        })()}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">End Time</label>
-                                        <input
-                                            type="time"
-                                            required
-                                            className="w-full py-2 px-3 bg-slate-50 hover:bg-slate-100 rounded-lg outline-none border border-slate-200 focus:border-[#1a73e8] transition-colors text-sm font-medium text-slate-700"
-                                            value={formData.endTime ? formData.endTime.slice(11, 16) : ''}
-                                            onChange={e => {
-                                                const date = formData.endTime?.slice(0, 10) || formData.startTime?.slice(0, 10) || new Date().toISOString().slice(0, 10);
-                                                setFormData(p => ({ ...p, endTime: date + 'T' + e.target.value }));
-                                            }}
-                                        />
-                                        {formData.endTime?.slice(11, 16) && (
-                                            <p className="text-[10px] font-semibold mt-1 text-slate-400">
-                                                {(() => {
-                                                    const [h, m] = (formData.endTime.slice(11, 16)).split(':').map(Number);
-                                                    const ampm = h >= 12 ? 'PM' : 'AM';
-                                                    const h12 = h % 12 || 12;
-                                                    return `${h12}:${m.toString().padStart(2,'0')} ${ampm}`;
-                                                })()}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
+                                )}
                             </div>
-                            
+
                             {/* Description */}
                             <div className="flex items-start gap-4 text-sm text-slate-700 mt-4">
                                 <div className="w-5 flex justify-center text-slate-400 mt-1.5">
                                     <AlignLeft size={20} />
                                 </div>
                                 <div className="flex-1">
-                                    <textarea 
+                                    <textarea
                                         className="w-full bg-slate-100 hover:bg-slate-200 focus:bg-white rounded-md px-3 py-2 text-sm outline-none border-b-2 border-transparent focus:border-[#1a73e8] transition-colors resize-none min-h-[80px]"
                                         placeholder="Add description"
                                         value={formData.description}
@@ -391,8 +426,8 @@ export function CalendarWidget() {
                                 <button onClick={closeModal} type="button" className="px-4 py-2 hover:bg-slate-100 rounded text-sm font-medium text-slate-600 transition-colors">
                                     Cancel
                                 </button>
-                                <button 
-                                    type="submit" 
+                                <button
+                                    type="submit"
                                     disabled={isSubmitting || isDeleting}
                                     className="px-6 py-2 bg-[#1a73e8] hover:bg-[#155b0] text-white rounded text-sm font-medium transition-colors flex items-center justify-center gap-2 min-w-[80px]"
                                 >
@@ -403,13 +438,13 @@ export function CalendarWidget() {
                     </div>
                 </div>
             )}
-            
-            <ConfirmationDialog 
+
+            <ConfirmationDialog
                 isOpen={confirmAction.show}
                 onClose={() => setConfirmAction({ ...confirmAction, show: false })}
                 onConfirm={confirmAction.type === 'save' ? handleSaveEvent : handleDeleteEvent}
                 title={confirmAction.type === 'save' ? (isEditing ? 'Update Event?' : 'Create Event?') : 'Delete Event?'}
-                description={confirmAction.type === 'save' 
+                description={confirmAction.type === 'save'
                     ? `Are you sure you want to ${isEditing ? 'update' : 'create'} this event in the clinic calendar?`
                     : 'This action cannot be undone. The event will be permanently removed from Google Calendar.'}
                 type={confirmAction.type === 'delete' ? 'danger' : 'info'}
@@ -464,6 +499,7 @@ export function CalendarWidget() {
                 </div>
             )}
 
+            {/* Success Toast */}
             {successToast.show && (
                 <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[200] pointer-events-none">
                     <div className="bg-white rounded-2xl shadow-2xl px-6 py-3 border border-emerald-100 flex items-center gap-3 animate-bounce-subtle">
@@ -483,14 +519,8 @@ export function CalendarWidget() {
                 .fc .fc-button-active { background-color: var(--accent) !important; color: white !important; border-color: var(--accent) !important; }
                 .fc-theme-standard th { background: var(--bg-wash); padding: 4px 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: var(--text-secondary); }
                 .fc-daygrid-day-number { font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); }
-                .fc-event { 
-                    cursor: pointer; 
-                    transition: opacity 0.2s; 
-                    margin: 2px 5px !important; 
-                    padding: 1px 4px !important; 
-                    border-radius: 4px !important;
-                    border: none !important;
-                }
+                .fc-event { cursor: pointer; transition: opacity 0.2s; }
+                .fc-event:hover { opacity: 0.9; }
                 .fc-daygrid-event {
                     white-space: nowrap !important;
                     overflow: hidden !important;
@@ -508,7 +538,6 @@ export function CalendarWidget() {
                     font-weight: 600 !important;
                     opacity: 0.9;
                 }
-                .fc-event:hover { opacity: 0.9; }
                 .fc-timegrid-slot-label { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); }
                 .fc-popover {
                     z-index: 1000 !important;

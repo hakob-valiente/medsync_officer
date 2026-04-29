@@ -20,15 +20,50 @@ export async function fetchAndProcessHealthNews(): Promise<HealthAdvisory[]> {
         }
 
         const advisories: HealthAdvisory[] = [];
+        const seenArticles = new Set<string>();
+        const seenTitles = new Set<string>();
 
         // Process top articles, cap at 6 advisories
+        let processedCount = 0;
         for (const article of newsArticles) {
-            if (advisories.length >= 6) break;
+            // De-duplicate source articles based on title or link
+            const articleKey = (article.title || article.link || '').toLowerCase().trim();
+            if (!articleKey || seenArticles.has(articleKey)) continue;
+            seenArticles.add(articleKey);
+
+            if (advisories.length >= 6 || processedCount >= 10) break;
+            processedCount++;
+
+            // Small delay between calls to avoid hitting rate limits too fast
+            if (processedCount > 1) {
+                await new Promise(resolve => setTimeout(resolve, 2000)); 
+            }
 
             try {
                 const advisoryData = await generateHealthAdvisory(article);
-                console.log(advisoryData);
+                
                 if (advisoryData) {
+                    const finalTitle = (advisoryData.title || article.title || 'Health Advisory').trim().toLowerCase();
+                    if (seenTitles.has(finalTitle)) continue;
+                    seenTitles.add(finalTitle);
+
+                    // Logic: Both must be false to discard. We handle both boolean and "true"/"false" strings from AI.
+                    const isMM = String(advisoryData.isMetroManilaAffected).toLowerCase() === 'true';
+                    const isVal = String(advisoryData.isValenzuelaAffected).toLowerCase() === 'true';
+
+                    // Always log to console as requested
+                    console.log('🤖 AI Processed Article:', {
+                        title: advisoryData.title,
+                        affectedLocations: advisoryData.affectedLocations,
+                        isMetroManila: isMM,
+                        isValenzuela: isVal,
+                        status: (!isMM && !isVal) ? 'FILTERED' : 'ACCEPTED'
+                    });
+
+                    if (!isMM && !isVal) {
+                        continue; 
+                    }
+
                     const normalized: HealthAdvisory = {
                         id: `adv-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                         title: advisoryData.title || article.title || 'Health Advisory',
@@ -41,9 +76,12 @@ export async function fetchAndProcessHealthNews(): Promise<HealthAdvisory[]> {
                         whenToSeekHelp: advisoryData.whenToVisitClinic || ['Consult a healthcare professional if symptoms persist'],
                         sourceUrl: article.link || article.url || 'https://doh.gov.ph',
                         publishedAt: article.pubDate || new Date().toISOString(),
-                        oneSentenceSummary: (advisoryData.oneSentenceSummary && advisoryData.oneSentenceSummary.length > 5)
-                            ? advisoryData.oneSentenceSummary
+                        oneSentenceSummary: (advisoryData.threeSentenceSummary && advisoryData.threeSentenceSummary.length > 5)
+                            ? advisoryData.threeSentenceSummary
                             : advisoryData.title || (advisoryData.summary?.split('.')[0] + '.'),
+                        affectedLocations: advisoryData.affectedLocations || [],
+                        isMetroManilaAffected: isMM,
+                        isValenzuelaAffected: isVal,
                         fullContent: advisoryData.fullContent || `
                             <div class="space-y-6">
                                 <div class="bg-blue-50/80 p-5 rounded-2xl border border-blue-100 shadow-sm">
@@ -144,7 +182,7 @@ async function fetchHealthNews() {
         return [];
     }
 
-    const queryString = '(epidemic OR flu OR contagion OR infection OR health) AND ("Metro Manila" OR Philippines)';
+    const queryString = '(epidemic OR flu OR contagion OR infection OR health) AND ("Metro Manila" OR Valenzuela)';
     const params = new URLSearchParams({
         apikey: NEWSDATA_API_KEY,
         qInMeta: queryString,
@@ -163,7 +201,7 @@ async function fetchHealthNews() {
     }
 }
 
-async function generateHealthAdvisory(newsArticle: any): Promise<any> {
+async function generateHealthAdvisory(newsArticle: any, retryCount = 0): Promise<any> {
     const GROQ_API_KEY = getEnv('VITE_GROQ_API_KEY');
     if (!GROQ_API_KEY) {
         return null;
@@ -173,17 +211,12 @@ async function generateHealthAdvisory(newsArticle: any): Promise<any> {
 Analyze the following news article for its location and health relevance.
 Generate an EDUCATIONAL health advisory from this news.
 
-CRITICAL INSTRUCTION:
-If the news article does NOT describe news occurring in the Philippines or Metro Manila, 
-you must return an empty JSON object {} and nothing else.
-
 News Article:
 Title: ${newsArticle.title}
 Content: ${newsArticle.description || newsArticle.content || ''}
 Source: ${newsArticle.source_id || 'News'}
 
-If it IS relevant to the Philippines/Metro Manila, generate JSON with this EXACT structure. ALL FIELDS ARE MANDATORY. 
-Ensure "oneSentenceSummary" is a high-quality, impactful sentence different from the summary.
+Generate JSON with this EXACT structure. ALL FIELDS ARE MANDATORY. 
 
 {
   "title": "Clear, specific educational title",
@@ -191,9 +224,12 @@ Ensure "oneSentenceSummary" is a high-quality, impactful sentence different from
   "category": "Infectious Disease" | "Respiratory" | "Mental Health" | "Nutrition" | "Environmental Health" | "Chronic Disease" | "Public Health",
   "summary": "Provide a comprehensive yet concise educational summary of approximately eighty words based on the provided news article. Your response must clearly explain the current health context, highlight specific findings mentioned in the news, and offer detailed, actionable guidance for the community. Please ensure that you incorporate as much specific detail as possible from the source text while strictly adhering to the specified word count. The final output should be informative, professional, and easy for the general public to understand and follow.",
   "possibleHealthConcerns": ["detailed concern 1 with symptoms", "detailed concern 2 with risks"],
-  "oneSentenceSummary": "A single, concise, and impactful sentence containg approiximately 14-17 words summarizing the news and this should be different from the summary",
+  "threeSentenceSummary": "A single, concise, and impactful 3 sentences containg approiximately 13-16 words per sentence summarizing the news and this should be different from the summary",
   "preventiveActions": ["specific preventive action 1", "community-level action 2"],
-  "whenToVisitClinic": ["specific symptom indicator 1", "specific clinical sign 1"]
+  "whenToVisitClinic": ["specific symptom indicator 1", "specific clinical sign 1"],
+  "affectedLocations": "Analyze this article to return an array [] of affected cities",
+  "isMetroManilaAffected": "true" | "false",
+  "isValenzuelaAffected": "true" | "false"
 }
 
 MANDATORY DISCLAIMER (must be in summary):
@@ -216,6 +252,13 @@ Respond with VALID JSON ONLY. No markdown formatting, no code blocks, no extra t
             })
         });
 
+        if (response.status === 429 && retryCount < 2) {
+            const waitTime = (retryCount + 1) * 3000;
+            console.warn(`⚠️ Groq Rate Limit (429). Retrying in ${waitTime/1000}s...`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+            return generateHealthAdvisory(newsArticle, retryCount + 1);
+        }
+
         if (!response.ok) return null;
         const data = await response.json();
         const content = data.choices[0]?.message?.content;
@@ -224,11 +267,8 @@ Respond with VALID JSON ONLY. No markdown formatting, no code blocks, no extra t
 
         const advisory = JSON.parse(jsonMatch[0]);
         if (!advisory.title || Object.keys(advisory).length === 0) return null;
-        console.log('🤖 GROQ AI RESPONSE:', advisory);
         return advisory;
     } catch {
         return null;
     }
 }
-
-

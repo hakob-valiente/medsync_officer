@@ -2,11 +2,11 @@ import { useState, useEffect, useMemo } from 'react';
 import {
     Plus, Search, ChevronDown, Package, Pill, Box,
     Edit, Trash2, AlertCircle, Eye,
-    FileText, FileSpreadsheet,
     LayoutGrid, List, Activity, Upload, Clock,
-    X, Check
+    X, Check, Camera, History
 } from 'lucide-react';
 import { ConfirmationDialog } from '../components/ui/ConfirmationDialog';
+import { QRScannerModal } from '../components/ui/QRScannerModal';
 import { useStore } from '../hooks/useStore';
 import {
     addLog,
@@ -18,15 +18,18 @@ import {
     fetchMedicineRequestsFromDB,
     updateMedicineRequestStatusDB,
     deleteMedicineRequestDB,
-    updateMedicineRequestDB
+    updateMedicineRequestDB,
+    genId
 } from '../store';
 import { notifyIndividual, type NotificationType } from '../lib/notifications';
 import { ViewMedicineRequestModal, RejectReasonModal, NewMedRequestModal } from './MedicalRequests';
-import type { InventoryItem, MedicineRequest } from '../types';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import type { InventoryItem, MedicineRequest, CampusRecord } from '../types';
+import { PaginationControl } from '../components/ui/PaginationControl';
 import Papa from 'papaparse';
 
+// --- Constants ---
+const CATEGORIES = ['Medicine', 'Supplies', 'Equipment', 'First Aid', 'Other'];
+const UNITS = ['By pieces', 'By boxes', 'By packs', 'By pairs', 'In ml'];
 
 // ---- Inventory Form Modal ----
 function InventoryFormModal({
@@ -37,11 +40,11 @@ function InventoryFormModal({
 }: {
     item?: InventoryItem | null;
     onClose: () => void;
-    onSave: (data: any) => void;
+    onSave: (data: Partial<InventoryItem>) => void;
     isSubmitting: boolean;
 }) {
     const { campuses } = useStore();
-    const [form, setForm] = useState({
+    const [form, setForm] = useState<Partial<InventoryItem>>({
         item_name: item?.item_name || '',
         asset_type: item?.asset_type || 'Medicine',
         status: item?.status || 'Available',
@@ -52,7 +55,7 @@ function InventoryFormModal({
     });
 
     const isExpired = form.expiry_date && new Date(form.expiry_date) <= new Date();
-    const valid = form.item_name.trim() && form.quantity >= 0 && form.campus;
+    const valid = form.item_name?.trim() && (form.quantity !== undefined && form.quantity >= 0) && form.campus;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay" onClick={onClose}>
@@ -64,7 +67,7 @@ function InventoryFormModal({
                         </div>
                         <div>
                             <h2 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{item ? 'Edit Inventory' : 'Add New Item'}</h2>
-                            <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Asset Management</p>
+                            <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Asset Management</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors" style={{ color: 'var(--text-muted)' }} onMouseOver={(e) => { e.currentTarget.style.background = 'var(--bg-wash)'; e.currentTarget.style.color = 'var(--text-primary)'; }} onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}>
@@ -93,10 +96,7 @@ function InventoryFormModal({
                                     className="w-full appearance-none rounded-xl px-4 py-3 pr-10 text-sm font-medium outline-none transition-all"
                                     style={{ background: 'var(--bg-wash)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                                 >
-                                    <option value="Medicine">Medicine</option>
-                                    <option value="Supplies">Supplies</option>
-                                    <option value="Equipment">Equipment</option>
-                                    <option value="Other">Other</option>
+                                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                                 </select>
                                 <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
                             </div>
@@ -110,7 +110,7 @@ function InventoryFormModal({
                                     className="w-full appearance-none rounded-xl px-4 py-3 pr-10 text-sm font-medium outline-none transition-all"
                                     style={{ background: 'var(--bg-wash)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                                 >
-                                    {campuses.map(c => (
+                                    {campuses.map((c: CampusRecord) => (
                                         <option key={c.id} value={c.name}>{c.name}</option>
                                     ))}
                                     {campuses.length === 0 && <option value="Main">Main</option>}
@@ -137,11 +137,7 @@ function InventoryFormModal({
                                     className="w-full appearance-none rounded-xl px-4 py-3 pr-10 text-sm font-medium outline-none transition-all"
                                     style={{ background: 'var(--bg-wash)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                                 >
-                                    <option value="By pieces">By pieces</option>
-                                    <option value="By boxes">By boxes</option>
-                                    <option value="By packs">By packs</option>
-                                    <option value="By pairs">By pairs</option>
-                                    <option value="In ml">In ml</option>
+                                    {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
                                 </select>
                                 <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
                             </div>
@@ -150,7 +146,7 @@ function InventoryFormModal({
                             <label className="form-label">Expiry Date</label>
                             <input
                                 type="date"
-                                value={form.expiry_date}
+                                value={form.expiry_date || ''}
                                 onChange={(e) => setForm(p => ({ ...p, expiry_date: e.target.value }))}
                                 className={`w-full rounded-xl px-4 py-3 text-sm font-medium outline-none transition-all`}
                                 style={{
@@ -177,6 +173,27 @@ function InventoryFormModal({
     );
 }
 
+// --- Stats Card ---
+function StatCard({ label, value, icon: Icon, color, trend }: any) {
+    return (
+        <div className="bg-white rounded-[var(--radius-2xl)] p-5 shadow-[var(--shadow-sm)] border group" style={{ background: 'var(--card-bg)', borderColor: 'var(--border)' }}>
+            <div className="flex items-center justify-between">
+                <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>{label}</p>
+                    <h3 className="text-2xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>{value}</h3>
+                    {trend && (
+                        <p className={`text-[9px] font-bold mt-2 flex items-center gap-1 ${trend.positive ? 'text-emerald-500' : 'text-red-500'}`}>
+                            {trend.positive ? '↑' : '↓'} {trend.value} <span className="text-slate-400">vs last month</span>
+                        </p>
+                    )}
+                </div>
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-110 group-hover:rotate-3`} style={{ background: color.bg, color: color.icon }}>
+                    <Icon size={24} strokeWidth={2.2} />
+                </div>
+            </div>
+        </div>
+    );
+}
 
 // ---- Main Inventory Page ----
 export default function Inventory() {
@@ -185,12 +202,9 @@ export default function Inventory() {
     const [filterType, setFilterType] = useState('All');
     const [statusFilter] = useState('All');
     const [campusFilter, setCampusFilter] = useState('All');
-    const [dateFilter, setDateFilter] = useState('ALL');
-    const [showForm, setShowForm] = useState(false);
-    const [editItem, setEditItem] = useState<InventoryItem | null>(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
     const [isRequestsOpen, setIsRequestsOpen] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
@@ -200,25 +214,36 @@ export default function Inventory() {
     const [requestPage, setRequestPage] = useState(1);
     const requestsPerPage = 4;
 
-    useEffect(() => {
-        setCurrentPage(1);
-        setRequestPage(1);
-    }, [searchTerm, filterType, campusFilter, viewMode, dateFilter]);
-
-    // Confirmations
-    const [confirmSave, setConfirmSave] = useState<any | null>(null);
+    // Modals & Confirmations
+    const [showForm, setShowForm] = useState(false);
+    const [editItem, setEditItem] = useState<InventoryItem | null>(null);
     const [confirmDelete, setConfirmDelete] = useState<InventoryItem | null>(null);
-    const [confirmAction, setConfirmAction] = useState<{ req: MedicineRequest; status: string } | null>(null);
+    const [confirmSave, setConfirmSave] = useState<Partial<InventoryItem> | null>(null);
+    const [showScanner, setShowScanner] = useState(false);
     const [viewMed, setViewMed] = useState<MedicineRequest | null>(null);
     const [rejectAction, setRejectAction] = useState<MedicineRequest | null>(null);
+    const [confirmAction, setConfirmAction] = useState<{ req: MedicineRequest; status: string } | null>(null);
     const [editMedRequest, setEditMedRequest] = useState<MedicineRequest | null>(null);
     const [confirmDeleteMed, setConfirmDeleteMed] = useState<MedicineRequest | null>(null);
+    const [requestToConfirmDispense, setRequestToConfirmDispense] = useState<MedicineRequest | null>(null);
     const [successToast, setSuccessToast] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
 
     useEffect(() => {
         fetchInventoryFromDB();
         fetchMedicineRequestsFromDB();
     }, []);
+
+    useEffect(() => {
+        if (successToast.show) {
+            const timer = setTimeout(() => setSuccessToast({ show: false, message: '' }), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [successToast]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+        setRequestPage(1);
+    }, [searchTerm, filterType, campusFilter, viewMode]);
 
     const filteredInventory = useMemo(() => {
         return inventory.filter(item => {
@@ -230,10 +255,8 @@ export default function Inventory() {
         });
     }, [inventory, searchTerm, filterType, statusFilter, campusFilter]);
 
-    const totalPages = Math.ceil(filteredInventory.length / itemsPerPage);
     const paginatedInventory = filteredInventory.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-    const pendingRequestsCount = medicineRequests.filter(r => r.status?.toUpperCase() === 'PENDING').length;
+    const totalPages = Math.ceil(filteredInventory.length / itemsPerPage);
 
     const getAvailableQuantity = (itemName: string, quantity: number) => {
         const requested = medicineRequests
@@ -248,16 +271,15 @@ export default function Inventory() {
         try {
             if (editItem) {
                 await updateInventoryDB(editItem.id, confirmSave);
-                addLog('Admin', `Updated inventory item: ${confirmSave.item_name}`);
+                addLog('Officer', `Updated inventory item: ${confirmSave.item_name}`);
             } else {
-                await addInventoryDB(confirmSave);
-                addLog('Admin', `Added new inventory item: ${confirmSave.item_name}`);
+                await addInventoryDB(confirmSave as InventoryItem);
+                addLog('Officer', `Added new inventory item: ${confirmSave.item_name}`);
             }
             setShowForm(false);
             setEditItem(null);
             setConfirmSave(null);
             setSuccessToast({ show: true, message: `Item ${editItem ? 'updated' : 'added'} successfully!` });
-            setTimeout(() => setSuccessToast({ show: false, message: '' }), 3000);
         } catch (e: any) {
             alert(e.message || 'Failed to save item.');
         } finally {
@@ -270,10 +292,9 @@ export default function Inventory() {
         setIsSubmitting(true);
         try {
             await deleteInventoryDB(confirmDelete.id);
-            addLog('Admin', `Deleted inventory item: ${confirmDelete.item_name}`);
+            addLog('Officer', `Deleted inventory item: ${confirmDelete.item_name}`);
             setConfirmDelete(null);
             setSuccessToast({ show: true, message: 'Item deleted successfully!' });
-            setTimeout(() => setSuccessToast({ show: false, message: '' }), 3000);
         } catch (e: any) {
             alert(e.message || 'Failed to delete item.');
         } finally {
@@ -281,41 +302,34 @@ export default function Inventory() {
         }
     };
 
-
     const handleRequestAction = async (req: MedicineRequest, status: string, reason?: string) => {
         setIsSubmitting(true);
         try {
             await updateMedicineRequestStatusDB(req.id, status, req.medicine, req.medicine_qty, reason);
 
-            let notifyMsg = `The status of your medicine request for ${req.medicine} (${req.medicine_qty} units) has been moved to ${status}.`;
+            let notifyMsg = `Your medicine request for ${req.medicine} has been ${status.toLowerCase()}.`;
+            let notifType: NotificationType = `medicine_request_${status.toLowerCase()}` as NotificationType;
+
             if (status === 'ACCEPTED') {
-                notifyMsg = `Your medicine request for ${req.medicine} has been approved. Please proceed to the clinic to receive your medicine.`;
-            } else if (status === 'DISPENSED') {
-                notifyMsg = `Your requested medicine ${req.medicine} has been dispensed successfully.`;
-            } else if (status === 'REJECTED') {
-                notifyMsg = `Your medicine request for ${req.medicine} was declined. Reason: ${reason || 'Not specified'}.`;
+                notifyMsg = req.generated_qr || req.id;
+                notifType = 'medicine_dispense_qr';
             }
 
-            await notifyIndividual(
-                req.requester_id,
-                'Medicine Request Update',
-                notifyMsg,
-                `medicine_request_${status.toLowerCase()}` as NotificationType,
-                req.id
-            );
+            await notifyIndividual(req.requester_id, 'Pharmacy Update', notifyMsg, notifType, req.id);
+            addLog('Officer', `${status} request for ${req.medicine} from student: ${req.requester_id}`);
 
-            addLog('Admin', `Updated medicine request status to ${status} for ${req.requester_name}`);
+            setConfirmAction(null);
             setRejectAction(null);
             setViewMed(null);
-            setConfirmAction(null);
+            setSuccessToast({ show: true, message: `Request ${status.toLowerCase()} successfully!` });
         } catch (e: any) {
-            alert(e.message || 'Action failed.');
+            alert(e.message || 'Action failed');
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    const importCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleBulkUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
@@ -324,21 +338,27 @@ export default function Inventory() {
             skipEmptyLines: true,
             complete: async (results) => {
                 const data = results.data as any[];
-                if (data.length === 0) return;
-
-                // Simple validation check
-                const first = data[0];
-                if (!first.item_name || !first.quantity) {
-                    alert('Invalid CSV format. Please ensure headers: item_name, quantity, asset_type, status, etc.');
-                    return;
-                }
+                const validItems = data.filter(row => row.item_name && row.quantity);
+                if (validItems.length === 0) return alert('No valid data found in CSV.');
 
                 setIsSubmitting(true);
                 try {
-                    await bulkInsertInventoryDB(data);
-                    alert(`Successfully imported ${data.length} items.`);
-                } catch (e: any) {
-                    alert('Import failed: ' + e.message);
+                    const itemsToInsert = validItems.map(row => ({
+                        id: genId(),
+                        item_name: row.item_name,
+                        asset_type: row.asset_type || 'Medicine',
+                        status: row.status || 'Available',
+                        quantity: parseInt(row.quantity) || 0,
+                        expiry_date: row.expiry_date || '',
+                        unit_measure: row.unit_measure || 'By pieces',
+                        campus: row.campus || (campuses.length > 0 ? campuses[0].name : 'Main')
+                    }));
+
+                    await bulkInsertInventoryDB(itemsToInsert);
+                    addLog('Officer', `Bulk imported ${itemsToInsert.length} items to inventory.`);
+                    setSuccessToast({ show: true, message: `Successfully imported ${itemsToInsert.length} items!` });
+                } catch (err: any) {
+                    alert('Import failed: ' + err.message);
                 } finally {
                     setIsSubmitting(false);
                     e.target.value = '';
@@ -347,402 +367,294 @@ export default function Inventory() {
         });
     };
 
-    const exportCSV = () => {
-        if (filteredInventory.length === 0) return;
-        const csv = Papa.unparse(filteredInventory);
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement("a");
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", `medsync_inventory_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
-
-    const exportPDF = () => {
-        if (filteredInventory.length === 0) return;
-        const doc = new jsPDF();
-
-        doc.setFontSize(18);
-        doc.text('PLV MedSync Inventory Report', 14, 20);
-        doc.setFontSize(10);
-        doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
-        doc.text(`Campus Filter: ${campusFilter}`, 14, 34);
-
-        const tableData = filteredInventory.map(item => [
-            item.item_name,
-            item.asset_type,
-            item.campus || 'Main',
-            item.quantity.toString(),
-            item.unit_measure,
-            item.expiry_date || 'N/A',
-            item.status
-        ]);
-
-        autoTable(doc, {
-            head: [['Item Name', 'Type', 'Campus', 'Qty', 'Unit', 'Expiry', 'Status']],
-            body: tableData,
-            startY: 40,
-            theme: 'striped',
-            headStyles: { fillColor: [100, 100, 100] },
-            styles: { fontSize: 8 }
-        });
-
-        doc.save(`medsync_inventory_${new Date().toISOString().split('T')[0]}.pdf`);
+    const handleDeleteMedRequest = async () => {
+        if (!confirmDeleteMed) return;
+        setIsSubmitting(true);
+        try {
+            await deleteMedicineRequestDB(confirmDeleteMed.id);
+            addLog('Officer', `Deleted medicine request for ${confirmDeleteMed.medicine}`);
+            setConfirmDeleteMed(null);
+            setSuccessToast({ show: true, message: 'Request deleted successfully' });
+        } catch (e: any) {
+            alert(e.message || 'Failed to delete request');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
-        <div className="space-y-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="p-6 max-w-[1600px] mx-auto min-h-screen">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>Inventory Management</h2>
-                    <p className="text-sm mt-1 font-medium opacity-70" style={{ color: 'var(--text-secondary)' }}>Tracking medicines, medical supplies, and equipment levels.</p>
+                    <h1 className="text-2xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>Inventory & Pharmacy</h1>
+                    <p className="text-xs font-semibold mt-1" style={{ color: 'var(--text-muted)' }}>Stock management and distribution lifecycle</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className="relative">
-                        <input
-                            type="file"
-                            id="csvImport"
-                            accept=".csv"
-                            className="hidden"
-                            onChange={importCSV}
-                        />
-                        <label
-                            htmlFor="csvImport"
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider cursor-pointer transition-all active:scale-95 border border-slate-200 hover:text-green-600 hover:bg-green-50 hover:border-green-200"
-                        >
-                            <Upload size={16} /> Import CSV
-                        </label>
-                    </div>
+                    <label className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest cursor-pointer transition-all hover:shadow-md active:scale-95" style={{ background: 'var(--bg-wash)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
+                        <Upload size={15} />
+                        Bulk CSV
+                        <input type="file" accept=".csv" className="hidden" onChange={handleBulkUpload} />
+                    </label>
+                    <button
+                        onClick={() => setIsRequestsOpen(true)}
+                        className={`relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all active:scale-95 ${isRequestsOpen ? 'hidden' : ''}`}
+                        style={{ background: 'var(--bg-wash)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+                    >
+                        <History size={15} />
+                        Requests
+                        {medicineRequests.filter(r => r.status === 'PENDING').length > 0 && (
+                            <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center border-2 border-white font-black animate-bounce">
+                                {medicineRequests.filter(r => r.status === 'PENDING').length}
+                            </span>
+                        )}
+                    </button>
                     <button
                         onClick={() => {
                             setEditItem(null);
                             setShowForm(true);
                         }}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all"
-                        style={{ color: 'var(--accent)', background: 'var(--accent-light)', border: '1px solid rgba(72,187,238,0.15)' }}
+                        className="btn-cta flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest"
                     >
-                        <Plus size={16} /> Add New Item
+                        <Plus size={16} strokeWidth={3} />
+                        Add New Item
                     </button>
                 </div>
             </div>
 
-            {/* Quick Actions & Stats */}
-            {/* Summary Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-                {[
-                    { label: 'Total Assets', val: inventory.length, color: 'var(--accent)', icon: Package, sub: 'In stock' },
-                    { label: 'Low Stock Alerts', val: inventory.filter(i => i.quantity < 20).length, color: 'var(--warning)', icon: AlertCircle, sub: 'Needs attention' },
-                    { label: 'Expired Items', val: inventory.filter(i => i.status === 'Expired').length, color: 'var(--danger)', icon: Clock, sub: 'Remove immediately' },
-                    { label: 'Pending Requests', val: pendingRequestsCount, color: 'var(--teal-primary)', icon: Activity, sub: 'Medicine requests' },
-                ].map((stat, i) => (
-                    <div key={i} className="kpi-card fade-in overflow-hidden relative" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)', padding: '1.25rem', borderRadius: '1rem' }}>
-                        <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl" style={{ background: stat.color, opacity: 0.7 }} />
-                        <div className="flex items-start justify-between relative z-10">
-                            <div>
-                                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-faint)' }}>{stat.label}</p>
-                                <p className="text-3xl font-bold tracking-tight mt-1.5" style={{ color: 'var(--text-primary)' }}>{stat.val}</p>
-                                <p className="text-[10px] font-medium mt-1 opacity-60" style={{ color: 'var(--text-secondary)' }}>{stat.sub}</p>
-                            </div>
-                            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${stat.color}14` }}>
-                                <stat.icon size={20} style={{ color: stat.color }} strokeWidth={2.2} />
-                            </div>
-                        </div>
-                        <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full" style={{ background: stat.color, opacity: 0.03 }} />
-                    </div>
-                ))}
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+                <StatCard
+                    label="Total Items"
+                    value={inventory.length}
+                    icon={Package}
+                    color={{ bg: 'var(--accent-light)', icon: 'var(--accent)' }}
+                />
+                <StatCard
+                    label="Low Stock"
+                    value={inventory.filter(i => i.quantity > 0 && i.quantity <= 10).length}
+                    icon={AlertCircle}
+                    color={{ bg: 'var(--warning-bg)', icon: 'var(--warning)' }}
+                />
+                <StatCard
+                    label="Pending Requests"
+                    value={medicineRequests.filter(r => r.status === 'PENDING').length}
+                    icon={Activity}
+                    color={{ bg: 'var(--info-bg)', icon: 'var(--info)' }}
+                />
+                <StatCard
+                    label="Total Dispensed"
+                    value={medicineRequests.filter(r => r.status === 'DISPENSED').length}
+                    icon={Check}
+                    color={{ bg: 'var(--success-bg)', icon: 'var(--success)' }}
+                />
             </div>
 
-            {/* Controls Bar */}
-            <div className="rounded-2xl p-4 flex flex-wrap items-center gap-4 shadow-sm" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
-                <div className="relative flex-1 min-w-[280px] max-w-md">
-                    <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-faint)' }} />
-                    <input
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="Search assets by name..."
-                        className="w-full pl-10 pr-3 py-2.5 text-sm rounded-xl outline-none font-normal transition-colors"
-                        style={{
-                            background: 'var(--bg-wash)',
-                            border: '1px solid var(--border)',
-                            color: 'var(--text-primary)'
-                        }}
-                    />
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3">
-                    <div className="relative">
-                        <select
-                            value={campusFilter}
-                            onChange={(e) => setCampusFilter(e.target.value)}
-                            className="appearance-none rounded-xl px-5 py-2.5 pr-10 text-xs font-semibold outline-none transition-colors"
-                            style={{
-                                background: 'var(--bg-wash)',
-                                border: '1px solid var(--border)',
-                                color: 'var(--text-primary)'
-                            }}
-                        >
-                            <option value="All">All Campuses</option>
-                            {campuses.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                            {campuses.length === 0 && <option value="Main">Main</option>}
-                        </select>
-                        <ChevronDown size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-faint)' }} />
-                    </div>
-                    <div className="relative">
-                        <select
-                            value={filterType}
-                            onChange={(e) => setFilterType(e.target.value)}
-                            className="appearance-none rounded-xl px-5 py-2.5 pr-10 text-xs font-semibold outline-none transition-colors shadow-sm"
-                            style={{
-                                background: 'var(--bg-wash)',
-                                border: '1px solid var(--border)',
-                                color: 'var(--text-primary)'
-                            }}
-                        >
-                            <option value="All">All Categories</option>
-                            <option value="Medicine">Medicine Only</option>
-                            <option value="Supplies">Supplies Only</option>
-                            <option value="Equipment">Equipment Only</option>
-                        </select>
-                        <ChevronDown size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-faint)' }} />
-                    </div>
-
-                    <div className="relative">
-                        <select
-                            value={dateFilter}
-                            onChange={(e) => setDateFilter(e.target.value)}
-                            className="appearance-none rounded-xl px-5 py-2.5 pr-10 text-xs font-semibold outline-none transition-colors shadow-sm"
-                            style={{
-                                background: 'var(--bg-wash)',
-                                border: '1px solid var(--border)',
-                                color: 'var(--text-primary)'
-                            }}
-                        >
-                            <option value="ALL">All Inventory</option>
-                            <option value="EXPIRING">Expiring (30d)</option>
-                            <option value="LOW">Low Stock</option>
-                        </select>
-                        <ChevronDown size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-faint)' }} />
-                    </div>
-
-                    <div className="flex items-center p-1.5 rounded-2xl shadow-sm" style={{ background: 'var(--bg-wash)', border: '1px solid var(--border)' }}>
-                        <button
-                            onClick={() => setViewMode('table')}
-                            className={`p-2 rounded-xl transition-all ${viewMode === 'table' ? 'shadow-sm' : 'opacity-40 hover:opacity-100'}`}
-                            style={viewMode === 'table' ? { background: 'var(--card-bg)', color: 'var(--accent)', border: '1px solid var(--border)' } : { color: 'var(--text-muted)' }}
-                        >
-                            <List size={16} />
-                        </button>
-                        <button
-                            onClick={() => setViewMode('grid')}
-                            className={`p-2 rounded-xl transition-all ${viewMode === 'grid' ? 'shadow-sm' : 'opacity-40 hover:opacity-100'}`}
-                            style={viewMode === 'grid' ? { background: 'var(--card-bg)', color: 'var(--accent)', border: '1px solid var(--border)' } : { color: 'var(--text-muted)' }}
-                        >
-                            <LayoutGrid size={16} />
-                        </button>
-                    </div>
-
-                    <div className="flex items-center gap-2 border-l pl-3 ml-1" style={{ borderColor: 'var(--border)' }}>
-                        <button
-                            onClick={exportCSV}
-                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all shadow-sm border"
-                            style={{
-                                background: 'var(--card-bg)',
-                                color: 'var(--success)',
-                                borderColor: 'rgba(52,211,153,0.15)'
-                            }}
-                            onMouseOver={e => { e.currentTarget.style.background = 'var(--bg-wash)'; }}
-                            onMouseOut={e => { e.currentTarget.style.background = 'var(--card-bg)'; }}
-                        >
-                            <FileSpreadsheet size={15} /> Export CSV
-                        </button>
-                        <button
-                            onClick={exportPDF}
-                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all shadow-sm border"
-                            style={{
-                                background: 'var(--card-bg)',
-                                color: 'var(--danger)',
-                                borderColor: 'rgba(239,68,68,0.15)'
-                            }}
-                            onMouseOver={e => { e.currentTarget.style.background = 'var(--bg-wash)'; }}
-                            onMouseOut={e => { e.currentTarget.style.background = 'var(--card-bg)'; }}
-                        >
-                            <FileText size={15} /> Export PDF
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Dashboard Content Split View */}
-            {/* Main Layout Container: Inventory + Sliding Plate */}
-            <div className="flex flex-col lg:flex-row gap-6 relative h-full items-start overflow-visible">
+            {/* Main Layout Container */}
+            <div className="flex flex-col lg:flex-row gap-6 relative items-start">
 
                 {/* Left Column: Inventory List */}
-                <div className="flex-1 min-w-0 space-y-6 transition-all duration-500">
+                <div className="flex-1 min-w-0 space-y-6">
+                    {/* Filters Bar */}
+                    <div className="bg-white rounded-2xl p-4 shadow-[var(--shadow-sm)] border flex flex-wrap items-center justify-between gap-4" style={{ background: 'var(--card-bg)', borderColor: 'var(--border)' }}>
+                        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[300px]">
+                            <div className="relative flex-1 max-w-md group">
+                                <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[var(--accent)] transition-colors" />
+                                <input
+                                    type="text"
+                                    placeholder="Search catalog or location..."
+                                    value={searchTerm}
+                                    onChange={e => setSearchTerm(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2.5 rounded-xl text-[13px] font-medium outline-none transition-all"
+                                    style={{ background: 'var(--bg-wash)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                                />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="relative group">
+                                    <select
+                                        value={filterType}
+                                        onChange={e => setFilterType(e.target.value)}
+                                        className="pl-4 pr-10 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none appearance-none cursor-pointer transition-all min-w-[140px]"
+                                        style={{ background: 'var(--bg-wash)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+                                    >
+                                        <option value="All">All Types</option>
+                                        {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                    <ChevronDown size={12} className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+                                </div>
+                                <div className="relative group">
+                                    <select
+                                        value={campusFilter}
+                                        onChange={e => setCampusFilter(e.target.value)}
+                                        className="pl-4 pr-10 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none appearance-none cursor-pointer transition-all min-w-[140px]"
+                                        style={{ background: 'var(--bg-wash)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+                                    >
+                                        <option value="All">All Campuses</option>
+                                        {campuses.map((c: CampusRecord) => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                    </select>
+                                    <ChevronDown size={12} className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 p-1 rounded-xl" style={{ background: 'var(--bg-wash)' }}>
+                            <button
+                                onClick={() => setViewMode('table')}
+                                className={`p-2 rounded-lg transition-all ${viewMode === 'table' ? 'bg-white shadow-sm text-[var(--accent)]' : 'text-slate-400'}`}
+                            >
+                                <List size={18} />
+                            </button>
+                            <button
+                                onClick={() => setViewMode('grid')}
+                                className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-[var(--accent)]' : 'text-slate-400'}`}
+                            >
+                                <LayoutGrid size={18} />
+                            </button>
+                        </div>
+                    </div>
+
                     {viewMode === 'table' ? (
-                        <div className="mobile-card-table rounded-2xl shadow-sm overflow-hidden flex flex-col min-h-[500px]" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
-                            <div className="flex-1 overflow-x-auto">
-                                <table className="w-full zebra-table">
+                        <div className="bg-white rounded-2xl shadow-[var(--shadow-sm)] border overflow-hidden" style={{ background: 'var(--card-bg)', borderColor: 'var(--border)' }}>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse">
                                     <thead>
-                                        <tr style={{ background: 'var(--bg-wash)', borderBottom: '1px solid var(--border)' }}>
-                                            {['Item Name', 'Campus', 'Quantity\nOn-hand / Available', 'Status', 'Expiry', 'Actions'].map(h => (
-                                                <th key={h} className="text-left text-[10px] font-medium uppercase tracking-wider px-6 py-4" style={{ color: 'var(--text-muted)' }}>
-                                                    {h.includes('\n') ? (
-                                                        <div className="flex flex-col leading-tight">
-                                                            <span>{h.split('\n')[0]}</span>
-                                                            <span className="text-[8px] font-normal mt-1" style={{ color: 'var(--text-muted)' }}>
-                                                                {h.split('\n')[1]}
-                                                            </span>
-                                                        </div>
-                                                    ) : (
-                                                        h
-                                                    )}
-                                                </th>
-                                            ))}
+                                        <tr style={{ background: 'var(--bg-wash)' }}>
+                                            <th className="px-5 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Asset Details</th>
+                                            <th className="px-5 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Campus</th>
+                                            <th className="px-5 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+                                                <div className="flex flex-col leading-tight">
+                                                    <span>Quantity</span>
+                                                    <span className="text-[8px] font-normal mt-1">On-hand / Available</span>
+                                                </div>
+                                            </th>
+                                            <th className="px-5 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Status</th>
+                                            <th className="px-5 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Expiry</th>
+                                            <th className="px-5 py-4 text-[10px] font-black uppercase tracking-widest text-right" style={{ color: 'var(--text-muted)' }}>Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-100">
-                                        {paginatedInventory.length === 0 ? (
-                                            <tr>
-                                                <td colSpan={6} className="py-20 text-center">
-                                                    <div className="flex flex-col items-center gap-3 text-slate-300">
-                                                        <Package size={48} className="opacity-20" />
-                                                        <p className="text-sm font-bold italic">No matching assets found</p>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ) : (
-                                            paginatedInventory.map(item => (
-                                                <tr key={item.id} className="transition-colors group text-sm" style={{ borderBottom: '1px solid var(--border-light)' }}>
-                                                    <td data-label="Item" className="px-6 py-4">
+                                    <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
+                                        {paginatedInventory.map(item => {
+                                            const available = getAvailableQuantity(item.item_name, item.quantity);
+                                            const isLow = available <= 10;
+                                            const isOutOfStock = available === 0;
+
+                                            return (
+                                                <tr key={item.id} className="group hover:bg-[var(--bg-wash)] transition-colors">
+                                                    <td className="px-5 py-4">
                                                         <div className="flex items-center gap-3">
-                                                            <div className="w-8 h-8 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110"
-                                                                style={{
-                                                                    background: item.asset_type === 'Medicine' ? 'var(--accent-light)' :
-                                                                        item.asset_type === 'Supplies' ? 'var(--warning-bg)' : 'var(--bg-wash)',
-                                                                    color: item.asset_type === 'Medicine' ? 'var(--accent)' :
-                                                                        item.asset_type === 'Supplies' ? 'var(--warning)' : 'var(--text-muted)'
-                                                                }}>
-                                                                {item.asset_type === 'Medicine' ? <Pill size={14} strokeWidth={2.5} /> : <Package size={14} strokeWidth={2.5} />}
+                                                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shadow-sm border transition-transform group-hover:scale-105 ${isOutOfStock ? 'bg-red-50 text-red-600 border-red-100' :
+                                                                    isLow ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                                                        'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                                                }`}>
+                                                                {item.asset_type === 'Medicine' ? <Pill size={18} /> : <Box size={18} />}
                                                             </div>
-                                                            <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{item.item_name}</span>
+                                                            <div>
+                                                                <p className="text-[13px] font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>{item.item_name}</p>
+                                                                <p className="text-[9px] font-bold tracking-widest uppercase mt-0.5" style={{ color: 'var(--text-faint)' }}>{item.asset_type}</p>
+                                                            </div>
                                                         </div>
                                                     </td>
-                                                    <td data-label="Campus" className="px-6 py-4">
-                                                        <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{item.campus || 'Main'}</span>
+                                                    <td className="px-5 py-4">
+                                                        <span className="text-[11px] font-bold" style={{ color: 'var(--text-secondary)' }}>{item.campus}</span>
                                                     </td>
-                                                    <td data-label="Quantity" className="px-6 py-4">
+                                                    <td className="px-5 py-4">
                                                         <div className="flex flex-col">
-                                                            <span className={`font-medium ${item.quantity < 20 ? 'text-red-500' : ''}`} style={{ color: item.quantity >= 20 ? 'var(--text-primary)' : undefined }}>
-                                                                {item.quantity} / {getAvailableQuantity(item.item_name, item.quantity)}
+                                                            <span className={`font-bold ${isLow ? 'text-amber-600' : isOutOfStock ? 'text-red-600' : 'text-[var(--text-primary)]'}`}>
+                                                                {item.quantity} / {available}
                                                             </span>
-                                                            <span className="text-[9px] font-medium uppercase tracking-wider opacity-60" style={{ color: 'var(--text-muted)' }}>{item.unit_measure}</span>
+                                                            <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mt-0.5">{item.unit_measure}</span>
                                                         </div>
                                                     </td>
-                                                    <td data-label="Status" className="px-6 py-4">
-                                                        <span className={`text-[9px] font-medium uppercase tracking-widest px-2.5 py-1 rounded-full border ${item.status === 'Available' ? 'bg-green-50 text-green-600 border-green-100' :
-                                                            item.status === 'Expired' ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-red-50 text-red-500 border-red-100'
+                                                    <td className="px-5 py-4">
+                                                        <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border ${item.status === 'Available' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                                                item.status === 'Expired' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                                                    'bg-red-50 text-red-600 border-red-100'
                                                             }`}>
                                                             {item.status}
                                                         </span>
                                                     </td>
-                                                    <td data-label="Expiry" className="px-6 py-4">
+                                                    <td className="px-5 py-4">
                                                         <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{item.expiry_date || 'N/A'}</span>
                                                     </td>
-                                                    <td data-label="Actions" className="px-6 py-4 text-right">
-                                                        <div className="flex items-center justify-end gap-2">
+                                                    <td className="px-5 py-4 text-right">
+                                                        <div className="flex items-center justify-end gap-1">
                                                             <button
                                                                 onClick={() => {
                                                                     setEditItem(item);
                                                                     setShowForm(true);
                                                                 }}
-                                                                className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
-                                                                style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
+                                                                className="p-2 rounded-lg transition-all hover:bg-blue-50 hover:text-blue-600"
+                                                                style={{ color: 'var(--text-muted)' }}
                                                             >
                                                                 <Edit size={14} />
                                                             </button>
                                                             <button
                                                                 onClick={() => setConfirmDelete(item)}
-                                                                className="w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-95"
-                                                                style={{ background: 'var(--danger-bg)', color: 'var(--danger)' }}
+                                                                className="p-2 rounded-lg transition-all hover:bg-red-50 hover:text-red-600"
+                                                                style={{ color: 'var(--text-muted)' }}
                                                             >
                                                                 <Trash2 size={14} />
                                                             </button>
                                                         </div>
                                                     </td>
                                                 </tr>
-                                            ))
-                                        )}
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
-                            <div className="px-6 py-4 flex items-center justify-between mt-auto" style={{ background: 'var(--bg-wash)', borderTop: '1px solid var(--border)' }}>
-                                <div className="flex items-center gap-4 ml-auto">
-                                    <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-                                        Page {currentPage} of {Math.max(1, totalPages)}
-                                    </span>
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                            disabled={currentPage === 1}
-                                            className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30 border border-slate-200 hover:bg-slate-50 transition-all shadow-sm"
-                                            style={{ background: 'var(--card-bg)', color: 'var(--text-secondary)' }}
-                                        >
-                                            Previous
-                                        </button>
-                                        <button
-                                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                            disabled={currentPage === totalPages || totalPages === 0}
-                                            className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30 border border-slate-200 hover:bg-slate-50 transition-all shadow-sm"
-                                            style={{ background: 'var(--card-bg)', color: 'var(--text-secondary)' }}
-                                        >
-                                            Next
-                                        </button>
-                                    </div>
-                                </div>
+                            <div className="p-4 border-t flex justify-end" style={{ borderColor: 'var(--border)' }}>
+                                <PaginationControl
+                                    currentPage={currentPage}
+                                    totalPages={totalPages}
+                                    onPageChange={setCurrentPage}
+                                />
                             </div>
                         </div>
                     ) : (
-                        <div className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {paginatedInventory.map(item => (
-                                    <div key={item.id} className="rounded-3xl shadow-sm transition-all hover:shadow-xl hover:shadow-slate-100 group overflow-hidden" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                            {paginatedInventory.map(item => {
+                                const available = getAvailableQuantity(item.item_name, item.quantity);
+                                const isLow = available <= 10;
+                                const isOutOfStock = available === 0;
+
+                                return (
+                                    <div key={item.id} className="rounded-2xl shadow-sm transition-all hover:shadow-xl group overflow-hidden border" style={{ background: 'var(--card-bg)', borderColor: 'var(--border)' }}>
                                         <div className="p-4 flex items-start justify-between border-b" style={{ background: 'var(--bg-wash)', borderColor: 'var(--border)' }}>
                                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all group-hover:scale-110 border ${item.asset_type === 'Medicine' ? 'bg-blue-50 text-blue-600 border-blue-100/50' :
-                                                item.asset_type === 'Supplies' ? 'bg-amber-50 text-amber-600 border-amber-100/50' : 'bg-slate-50 text-slate-500 border-slate-100'
+                                                    item.asset_type === 'Supplies' ? 'bg-amber-50 text-amber-600 border-amber-100/50' : 'bg-slate-50 text-slate-500 border-slate-100'
                                                 }`}>
-                                                {item.asset_type === 'Medicine' ? <Pill size={18} /> :
-                                                    item.asset_type === 'Supplies' ? <Package size={18} /> : <Box size={18} />}
+                                                {item.asset_type === 'Medicine' ? <Pill size={18} /> : <Box size={18} />}
                                             </div>
                                             <div className="flex flex-col items-end">
-                                                <span className={`text-[9px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full border mb-1.5 ${item.status === 'Available' ? 'bg-green-50 text-green-600 border-green-100' : item.status === 'Expired' ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-red-50 text-red-500 border-red-100'
+                                                <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border mb-1.5 ${item.status === 'Available' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                                        item.status === 'Expired' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                                            'bg-red-50 text-red-500 border-red-100'
                                                     }`}>
                                                     {item.status}
                                                 </span>
-                                                <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{item.campus || 'Main'}</span>
+                                                <span className="text-[10px] font-bold" style={{ color: 'var(--text-muted)' }}>{item.campus}</span>
                                             </div>
                                         </div>
 
                                         <div className="p-5">
                                             <div className="mb-4">
-                                                <h3 className="font-semibold text-base group-hover:text-blue-600 transition-colors" style={{ color: 'var(--text-primary)' }}>{item.item_name}</h3>
-                                                <p className="text-[10px] font-medium mt-0.5 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{item.asset_type}</p>
+                                                <h3 className="font-bold text-[15px] group-hover:text-[var(--accent)] transition-colors" style={{ color: 'var(--text-primary)' }}>{item.item_name}</h3>
+                                                <p className="text-[10px] font-bold mt-0.5 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{item.asset_type}</p>
                                             </div>
 
-                                            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 relative">
+                                            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 relative border border-slate-100">
                                                 <div className="flex flex-col">
-                                                    <span className="text-[9px] font-medium uppercase tracking-wider leading-none mb-1.5" style={{ color: 'var(--text-muted)' }}>Stock / Avail</span>
-                                                    <span className={`text-sm font-semibold ${item.quantity < 20 ? 'text-red-500' : ''}`} style={{ color: item.quantity >= 20 ? 'var(--text-primary)' : undefined }}>
-                                                        {item.quantity} / {getAvailableQuantity(item.item_name, item.quantity)}
-                                                        <span className="text-[9px] uppercase font-bold ml-1" style={{ color: 'var(--text-muted)' }}>{item.unit_measure.split(' ')[1] || item.unit_measure}</span>
+                                                    <span className="text-[9px] font-bold uppercase tracking-wider leading-none mb-1.5 text-slate-400">Stock / Avail</span>
+                                                    <span className={`text-sm font-black ${isLow ? 'text-amber-600' : isOutOfStock ? 'text-red-600' : 'text-[var(--text-primary)]'}`}>
+                                                        {item.quantity} / {available}
+                                                        <span className="text-[9px] uppercase font-bold ml-1 text-slate-400">{item.unit_measure.split(' ')[1] || item.unit_measure}</span>
                                                     </span>
                                                 </div>
                                                 <div className="absolute left-1/2 top-1/2 -translate-y-1/2 h-8 w-px bg-slate-200" />
                                                 <div className="flex flex-col items-end">
-                                                    <span className="text-[9px] font-medium uppercase tracking-wider leading-none mb-1.5" style={{ color: 'var(--text-muted)' }}>Expires</span>
-                                                    <span className="text-[11px] font-semibold" style={{ color: 'var(--text-secondary)' }}>{item.expiry_date || 'N/A'}</span>
+                                                    <span className="text-[9px] font-bold uppercase tracking-wider leading-none mb-1.5 text-slate-400">Expires</span>
+                                                    <span className="text-[12px] font-bold" style={{ color: 'var(--text-secondary)' }}>{item.expiry_date || 'N/A'}</span>
                                                 </div>
                                             </div>
 
@@ -752,72 +664,51 @@ export default function Inventory() {
                                                         setEditItem(item);
                                                         setShowForm(true);
                                                     }}
-                                                    className="flex-1 py-2 rounded-xl text-[10px] font-semibold uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2"
+                                                    className="flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2"
                                                     style={{ color: 'var(--accent)', background: 'var(--accent-light)', border: '1px solid rgba(72,187,238,0.15)' }}
                                                 >
                                                     <Edit size={12} /> Edit Asset
                                                 </button>
                                                 <button
                                                     onClick={() => setConfirmDelete(item)}
-                                                    className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all active:scale-95"
-                                                    title="Remove Asset"
+                                                    className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all active:scale-95 border border-red-100"
                                                 >
                                                     <Trash2 size={14} />
                                                 </button>
                                             </div>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-
-                            {/* Standardized Pagination UI for Grid */}
-                            <div className="flex items-center justify-between p-4 rounded-3xl mt-4 shadow-sm" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
-                                <div className="flex items-center gap-4 ml-auto">
-                                    <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-                                        Page {currentPage} of {Math.max(1, totalPages)}
-                                    </span>
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                            disabled={currentPage === 1}
-                                            className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30 border border-slate-200 hover:bg-slate-50 transition-all shadow-sm"
-                                            style={{ background: 'var(--card-bg)', color: 'var(--text-secondary)' }}
-                                        >
-                                            Previous
-                                        </button>
-                                        <button
-                                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                            disabled={currentPage === totalPages || totalPages === 0}
-                                            className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30 border border-slate-200 hover:bg-slate-50 transition-all shadow-sm"
-                                            style={{ background: 'var(--card-bg)', color: 'var(--text-secondary)' }}
-                                        >
-                                            Next
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                                );
+                            })}
                         </div>
                     )}
+
+                    <div className="flex justify-end mt-4">
+                        <PaginationControl
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                        />
+                    </div>
                 </div>
 
-                {/* Right Side Slide-out Panel (Folded State) */}
+                {/* Right Side Slide-out Panel */}
                 <div
                     className={`fixed lg:relative top-0 right-0 h-[calc(100vh-100px)] lg:h-[800px] z-40 flex transition-all duration-500 ease-in-out ${isRequestsOpen ? 'w-full lg:w-[450px]' : 'w-0 lg:w-[64px]'}`}
                 >
-                    {/* Collapsed Handle / Vertical Tab (Only when closed) */}
+                    {/* Collapsed Handle */}
                     {!isRequestsOpen && (
                         <button
                             onClick={() => setIsRequestsOpen(true)}
                             className="hidden lg:flex absolute inset-0 rounded-l-3xl flex-col items-center justify-start pt-4 shadow-2xl transition-all hover:bg-slate-50 group overflow-hidden z-50 focus:outline-none"
                             style={{ background: 'var(--card-bg)', borderLeft: '1px solid var(--border-light)' }}
-                            title="Expand Requests Panel"
                         >
                             <div className="flex flex-col items-center gap-2">
                                 <ChevronDown size={20} className="-rotate-90 text-slate-400 group-hover:translate-x-1 transition-transform opacity-70" />
-                                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center animate-pulse shadow-sm">
+                                <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center animate-pulse shadow-sm">
                                     <Pill size={20} />
                                 </div>
-                                <div className="rotate-90 whitespace-nowrap text-[9px] font-black uppercase tracking-[0.5em] text-slate-500 group-hover:text-emerald-600 transition-colors mt-16">
+                                <div className="rotate-90 whitespace-nowrap text-[9px] font-black uppercase tracking-[0.5em] text-slate-500 group-hover:text-blue-600 transition-colors mt-24">
                                     Medical Requests
                                 </div>
                             </div>
@@ -828,7 +719,7 @@ export default function Inventory() {
                     <div className={`w-full h-full flex flex-col overflow-hidden rounded-l-3xl shadow-2xl border-l transition-all duration-500 ease-in-out ${isRequestsOpen ? 'translate-x-0 opacity-100 visible' : 'translate-x-full opacity-0 invisible'}`} style={{ background: 'var(--card-bg)', borderColor: 'var(--border-light)' }}>
                         <div className="p-6 border-b flex items-center justify-between bg-slate-50/50" style={{ borderColor: 'var(--border-light)' }}>
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-inner">
+                                <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shadow-inner">
                                     <Pill size={20} />
                                 </div>
                                 <div>
@@ -838,12 +729,17 @@ export default function Inventory() {
                             </div>
                             <div className="flex items-center gap-2">
                                 <span className="text-[10px] font-bold px-2 py-1 rounded-lg" style={{ background: 'var(--warning-bg)', color: 'var(--warning)' }}>
-                                    {medicineRequests.filter(r => r.status?.toUpperCase() === 'PENDING').length} PENDING
+                                    PENDING: {medicineRequests.filter(r => r.status?.toUpperCase() === 'PENDING').length}
                                 </span>
+                                <button
+                                    onClick={() => setShowScanner(true)}
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-500/20 active:scale-95"
+                                >
+                                    <Camera size={12} /> Scan QR
+                                </button>
                                 <button
                                     onClick={() => setIsRequestsOpen(false)}
                                     className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-all text-slate-400"
-                                    title="Fold Panel"
                                 >
                                     <ChevronDown size={20} className="-rotate-90" />
                                 </button>
@@ -866,144 +762,161 @@ export default function Inventory() {
                                 }
 
                                 return (
-                                    <>
-                                        <div className="space-y-3">
-                                            {paginatedRequests.map(req => (
-                                                <div key={req.id} className="rounded-2xl p-4 space-y-3 transition-all" style={{ background: 'var(--bg-wash)', border: '1px solid var(--border-light)' }}>
-                                                    <div className="flex items-start justify-between">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-10 h-10 rounded-xl flex items-center justify-center font-semibold text-sm" style={{ background: 'var(--card-bg)', color: 'var(--accent)', border: '1px solid var(--border)' }}>
-                                                                {req.medicine_qty}
-                                                            </div>
-                                                            <div>
-                                                                <div className="flex items-center gap-2">
-                                                                    <h4 className="font-semibold text-xs leading-tight" style={{ color: 'var(--text-primary)' }}>{req.medicine}</h4>
-                                                                    {req.admin_created && (
-                                                                        <span className="px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-wider bg-amber-100 text-amber-600 border border-amber-200 shrink-0">Admin Created</span>
-                                                                    )}
-                                                                </div>
-                                                                <p className="text-[10px] font-medium mt-0.5" style={{ color: 'var(--text-muted)' }}>{req.requester_name}</p>
-                                                            </div>
+                                    <div className="space-y-3">
+                                        {paginatedRequests.map(req => (
+                                            <div key={req.id} className="rounded-2xl p-4 space-y-3 transition-all" style={{ background: 'var(--bg-wash)', border: '1px solid var(--border-light)' }}>
+                                                <div className="flex items-start justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm" style={{ background: 'var(--card-bg)', color: 'var(--accent)', border: '1px solid var(--border)' }}>
+                                                            {req.medicine_qty}
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[13px] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>{req.medicine}</p>
+                                                            <p className="text-[10px] font-bold mt-0.5" style={{ color: 'var(--text-muted)' }}>{req.profiles?.fullName || req.profiles?.full_name || 'Loading...'}</p>
                                                         </div>
                                                     </div>
-                                                    <div className="p-2.5 rounded-xl text-[10px] italic leading-snug" style={{ background: 'var(--card-bg)', border: '1px solid var(--border-light)', color: 'var(--text-secondary)' }}>
-                                                        "{req.request_reason || 'No reason'}"
+                                                    <div className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${req.status === 'PENDING' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-blue-50 text-blue-600 border border-blue-100'
+                                                        }`}>
+                                                        {req.status}
                                                     </div>
-                                                    <div className="flex gap-2">
-                                                        {req.status?.toUpperCase() === 'PENDING' ? (
+                                                </div>
+
+                                                <div className="flex items-center justify-between pt-2 border-t" style={{ borderColor: 'var(--border-light)' }}>
+                                                    <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400">
+                                                        <Clock size={12} />
+                                                        {new Date(req.requested_tst).toLocaleDateString()}
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={() => setViewMed(req)}
+                                                            className="p-1.5 rounded-lg hover:bg-slate-200 transition-colors"
+                                                            style={{ color: 'var(--text-muted)' }}
+                                                        >
+                                                            <Eye size={14} />
+                                                        </button>
+                                                        {req.status === 'PENDING' ? (
                                                             <button
                                                                 onClick={() => setConfirmAction({ req, status: 'ACCEPTED' })}
-                                                                disabled={isSubmitting}
-                                                                className="flex-1 py-1 px-2 rounded-xl text-[9px] font-semibold uppercase tracking-wider transition-all disabled:opacity-40 hover:bg-emerald-600 hover:text-white border flex items-center justify-center gap-1.5"
-                                                                style={{ borderColor: 'var(--border)' }}
+                                                                className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-md shadow-blue-500/10"
                                                             >
-                                                                <Check size={12} /> Accept
+                                                                Approve
                                                             </button>
                                                         ) : (
                                                             <button
-                                                                onClick={() => setConfirmAction({ req, status: 'DISPENSED' })}
-                                                                disabled={isSubmitting}
-                                                                className="flex-1 py-1 px-2 rounded-xl text-[9px] font-semibold uppercase tracking-wider transition-all disabled:opacity-40 hover:bg-blue-600 hover:text-white border flex items-center justify-center gap-1.5"
-                                                                style={{ borderColor: 'var(--border)' }}
+                                                                onClick={() => setRequestToConfirmDispense(req)}
+                                                                className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-[9px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-md shadow-emerald-500/10"
                                                             >
                                                                 Dispense
                                                             </button>
                                                         )}
-                                                        <button
-                                                            onClick={() => setViewMed(req)}
-                                                            className="px-2 py-1 rounded-xl transition-all active:scale-95 flex items-center justify-center hover:bg-slate-100 border"
-                                                            style={{ borderColor: 'var(--border)' }}
-                                                        >
-                                                            <Eye size={14} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setRejectAction(req)}
-                                                            disabled={isSubmitting}
-                                                            className="flex-[0.5] py-2 rounded-xl transition-all active:scale-95 disabled:opacity-40 flex items-center justify-center border hover:bg-red-500 hover:text-white"
-                                                            style={{ color: 'var(--danger)', borderColor: 'var(--border)' }}
-                                                        >
-                                                            <X size={14} />
-                                                        </button>
                                                     </div>
                                                 </div>
-                                            ))}
-                                        </div>
-
-                                        {/* Pagination for requests */}
-                                        <div className="pt-4 mt-2 border-t flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
-                                            <span className="text-[9px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-                                                Page {requestPage} of {Math.max(1, totalRequestsPages)}
-                                            </span>
-                                            <div className="flex items-center gap-1.5">
-                                                <button
-                                                    onClick={() => setRequestPage(p => Math.max(1, p - 1))}
-                                                    disabled={requestPage === 1}
-                                                    className="p-1 px-2 rounded-lg text-[9px] font-medium uppercase border disabled:opacity-40 transition-colors"
-                                                    style={{ background: 'var(--card-bg)', borderColor: 'var(--border)', color: 'var(--text-muted)' }}
-                                                >
-                                                    Prev
-                                                </button>
-                                                <button
-                                                    onClick={() => setRequestPage(p => Math.min(totalRequestsPages, p + 1))}
-                                                    disabled={requestPage === totalRequestsPages || totalRequestsPages === 0}
-                                                    className="p-1 px-2 rounded-lg text-[9px] font-medium uppercase border disabled:opacity-40 transition-colors"
-                                                    style={{ background: 'var(--card-bg)', borderColor: 'var(--border)', color: 'var(--text-muted)' }}
-                                                >
-                                                    Next
-                                                </button>
                                             </div>
-                                        </div>
-                                    </>
+                                        ))}
+
+                                        {totalRequestsPages > 1 && (
+                                            <div className="pt-2 flex justify-center">
+                                                <PaginationControl
+                                                    currentPage={requestPage}
+                                                    totalPages={totalRequestsPages}
+                                                    onPageChange={setRequestPage}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
                                 );
                             })()}
-                            <div className="p-5 border-t bg-slate-50/10" style={{ borderColor: 'var(--border-light)' }}>
-                                <a
-                                    href="/requests"
-                                    className="block w-full py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-center border transition-all hover:bg-white hover:shadow-lg"
-                                    style={{ borderColor: 'var(--border-light)', color: 'var(--text-secondary)' }}
-                                >
-                                    View Global Requests Repo
-                                </a>
-                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
+            {/* Notifications / Toasts */}
+            {successToast.show && (
+                <div className="fixed bottom-8 right-8 z-[100] animate-in fade-in slide-in-from-right-8 duration-300">
+                    <div className="bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center">
+                            <Check size={18} strokeWidth={3} />
+                        </div>
+                        <div>
+                            <p className="text-xs font-black uppercase tracking-widest">System Operation Success</p>
+                            <p className="text-sm font-medium text-slate-300">{successToast.message}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Modals */}
             {showForm && (
                 <InventoryFormModal
                     item={editItem}
-                    onClose={() => {
-                        setShowForm(false);
-                        setEditItem(null);
-                    }}
+                    onClose={() => { setShowForm(false); setEditItem(null); }}
                     onSave={(data) => setConfirmSave(data)}
                     isSubmitting={isSubmitting}
                 />
             )}
 
+            {confirmSave && (
+                <ConfirmationDialog
+                    isOpen={true}
+                    title={editItem ? "Confirm Modification" : "Confirm Addition"}
+                    description={`Are you sure you want to ${editItem ? 'update' : 'add'} "${confirmSave.item_name}"? This will reflect in real-time inventory tracking.`}
+                    onConfirm={handleSaveItem}
+                    onClose={() => setConfirmSave(null)}
+                    isLoading={isSubmitting}
+                    type="info"
+                />
+            )}
+
+            {confirmDelete && (
+                <ConfirmationDialog
+                    isOpen={true}
+                    title="Permanent Deletion"
+                    description={`Warning: You are about to permanently delete "${confirmDelete.item_name}" from the inventory. This action is irreversible.`}
+                    onConfirm={handleDeleteItem}
+                    onClose={() => setConfirmDelete(null)}
+                    isLoading={isSubmitting}
+                    type="danger"
+                />
+            )}
+
+            {confirmAction && (
+                <ConfirmationDialog
+                    isOpen={true}
+                    title="Approve Request"
+                    description={`Confirm approval for ${confirmAction.req.medicine} (${confirmAction.req.medicine_qty} units). This will notify the student for collection.`}
+                    onConfirm={() => handleRequestAction(confirmAction.req, 'ACCEPTED')}
+                    onClose={() => setConfirmAction(null)}
+                    isLoading={isSubmitting}
+                    type="info"
+                />
+            )}
+
+            {requestToConfirmDispense && (
+                <ConfirmationDialog
+                    isOpen={true}
+                    title="Confirm Dispensing"
+                    description={`Are you sure you want to mark this request as DISPENSED? This will officially deduct ${requestToConfirmDispense.medicine_qty} units of ${requestToConfirmDispense.medicine} from your inventory.`}
+                    onConfirm={() => handleRequestAction(requestToConfirmDispense, 'DISPENSED')}
+                    onClose={() => setRequestToConfirmDispense(null)}
+                    isLoading={isSubmitting}
+                    type="success"
+                />
+            )}
+
             {viewMed && (
                 <ViewMedicineRequestModal
-                    request={viewMed}
+                    req={viewMed}
                     onClose={() => setViewMed(null)}
-                    onEdit={() => {
-                        setEditMedRequest(viewMed);
-                        setViewMed(null);
-                    }}
-                    onDelete={() => {
-                        setConfirmDeleteMed(viewMed);
-                        setViewMed(null);
-                    }}
                     onStatusChange={(status) => {
                         if (status === 'REJECTED') {
                             setRejectAction(viewMed);
-                            setViewMed(null);
                         } else {
                             handleRequestAction(viewMed, status);
                         }
                     }}
-                    isSubmitting={isSubmitting}
+                    onEdit={(req) => setEditMedRequest(req)}
+                    onDelete={(req) => setConfirmDeleteMed(req)}
                 />
             )}
 
@@ -1013,96 +926,54 @@ export default function Inventory() {
                     onClose={() => setRejectAction(null)}
                     onConfirm={(reason) => handleRequestAction(rejectAction, 'REJECTED', reason)}
                     isSubmitting={isSubmitting}
+                    title="Reject Medicine Request"
                 />
             )}
 
-            {/* Delete Confirmation */}
-            <ConfirmationDialog
-                isOpen={!!confirmDelete}
-                title="Remove Asset"
-                description={`Are you sure you want to permanently delete ${confirmDelete?.item_name} from the inventory? This cannot be undone.`}
-                confirmText="Permanently Delete"
-                type="danger"
-                isLoading={isSubmitting}
-                onClose={() => setConfirmDelete(null)}
-                onConfirm={handleDeleteItem}
-            />
-
-            {/* Save Confirmation */}
-            <ConfirmationDialog
-                isOpen={!!confirmSave}
-                title={editItem ? "Update Asset" : "Register New Asset"}
-                description={`Confirm ${editItem ? 'changes to' : 'addition of'} ${confirmSave?.item_name}? This will update official clinical records.`}
-                confirmText={editItem ? "Update Records" : "Confirm Entry"}
-                type="info"
-                isLoading={isSubmitting}
-                onClose={() => setConfirmSave(null)}
-                onConfirm={handleSaveItem}
-            />
-
-            <ConfirmationDialog
-                isOpen={!!confirmAction}
-                title="Confirm Action"
-                description={`Are you sure you want to ${confirmAction?.status === 'ACCEPTED' ? 'accept' : 'dispense'} this request?`}
-                onClose={() => setConfirmAction(null)}
-                onConfirm={() => confirmAction && handleRequestAction(confirmAction.req, confirmAction.status)}
-                isLoading={isSubmitting}
-                type="info"
-            />
-
-            {/* Delete Medicine Request Confirmation */}
-            <ConfirmationDialog
-                isOpen={!!confirmDeleteMed}
-                title="Delete Medicine Request"
-                description="Are you sure you want to permanently delete this admin-created medicine request? This cannot be undone."
-                confirmText="Permanently Delete"
-                type="danger"
-                isLoading={isSubmitting}
-                onClose={() => setConfirmDeleteMed(null)}
-                onConfirm={async () => {
-                    if (!confirmDeleteMed) return;
-                    setIsSubmitting(true);
-                    try {
-                        await deleteMedicineRequestDB(confirmDeleteMed.id);
-                        addLog('Admin', `Deleted medicine request ${confirmDeleteMed.id}`);
-                        setConfirmDeleteMed(null);
-                    } catch (e: any) {
-                        alert(e.message || 'Deletion failed.');
-                    } finally {
-                        setIsSubmitting(false);
-                    }
-                }}
-            />
-
-            {/* Edit Medicine Request Modal */}
             {editMedRequest && (
                 <NewMedRequestModal
-                    initialData={editMedRequest}
                     onClose={() => setEditMedRequest(null)}
-                    isSubmitting={isSubmitting}
                     onSave={async (data) => {
-                        setIsSubmitting(true);
-                        try {
-                            await updateMedicineRequestDB(editMedRequest.id, data);
-                            addLog('Admin', `Updated medicine request ${editMedRequest.id}`);
-                            setEditMedRequest(null);
-                        } catch (e: any) {
-                            alert(e.message || 'Failed to update request.');
-                        } finally {
-                            setIsSubmitting(false);
+                        await updateMedicineRequestDB(editMedRequest.id, data);
+                        setEditMedRequest(null);
+                        setSuccessToast({ show: true, message: 'Request updated successfully' });
+                    }}
+                    isSubmitting={isSubmitting}
+                    initialData={editMedRequest}
+                />
+            )}
+
+            {confirmDeleteMed && (
+                <ConfirmationDialog
+                    isOpen={true}
+                    title="Delete Request"
+                    description="Are you sure you want to delete this medicine request? This action cannot be undone."
+                    onConfirm={handleDeleteMedRequest}
+                    onClose={() => setConfirmDeleteMed(null)}
+                    isLoading={isSubmitting}
+                    type="danger"
+                />
+            )}
+
+            {showScanner && (
+                <QRScannerModal
+                    onClose={() => setShowScanner(false)}
+                    onScan={async (data) => {
+                        const req = medicineRequests.find(r => r.generated_qr === data || r.id === data);
+                        if (req) {
+                            if (req.status === 'ACCEPTED') {
+                                setRequestToConfirmDispense(req);
+                                setShowScanner(false);
+                            } else if (req.status === 'DISPENSED') {
+                                alert('This medicine has already been dispensed.');
+                            } else {
+                                alert('This request is still pending approval.');
+                            }
+                        } else {
+                            alert('Invalid QR code or request not found.');
                         }
                     }}
                 />
-            )}
-            {successToast.show && (
-                <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[200] pointer-events-none">
-                    <div className="bg-white rounded-2xl shadow-2xl px-6 py-3 border border-emerald-100 flex items-center gap-3 animate-bounce-subtle">
-                        <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center">
-                            <Check size={18} strokeWidth={3} />
-                        </div>
-                        <span className="text-sm font-bold text-slate-800">{successToast.message}</span>
-                    </div>
-                </div>
             )}
         </div>
     );

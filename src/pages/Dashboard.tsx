@@ -3,6 +3,7 @@ import {
     Users,
     X, ExternalLink, Info, Activity, Clock, AlertTriangle
 } from 'lucide-react';
+
 import { useStore } from '../hooks/useStore';
 import { CalendarWidget } from '../components/CalendarWidget';
 import { useEffect } from 'react';
@@ -12,44 +13,39 @@ import type { HealthAdvisory } from '../types';
 
 // ---- KPI Value Card (3-Second Rule) ----
 function KPICard({
-    icon: Icon, label, value, accent, sub
+    icon: Icon, label, value, accent
 }: {
     icon: React.ElementType;
     label: string;
     value: number | string;
     accent: string;
-    sub?: string;
 }) {
+    const isLowStock = label === 'Low Stock Items';
+    
     return (
         <div
             className="kpi-card fade-in"
-            style={{ '--kpi-accent': accent } as React.CSSProperties}
+            style={{ 
+                '--kpi-accent': accent,
+                padding: '16px 20px',
+            } as React.CSSProperties}
         >
-            {/* Top accent bar */}
-            <div
-                className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl"
-                style={{ background: accent, opacity: 0.7 }}
-            />
-            <div className="flex items-start justify-between relative z-10">
+            <div className="flex items-center justify-between relative z-10">
                 <div>
-                    <p className="kpi-label">{label}</p>
-                    <p className="kpi-value" style={{ marginTop: '6px' }}>{value}</p>
-                    {sub && (
-                        <p className="kpi-sub">{sub}</p>
-                    )}
+                    <p className="kpi-label" style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>{label}</p>
+                    <p className="kpi-value" style={{ marginTop: '2px', fontSize: '1.75rem' }}>{value}</p>
                 </div>
                 <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: accent + '14' }}
+                    className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: isLowStock ? accent + '14' : 'var(--bg-wash)' }}
                 >
-                    <Icon size={22} style={{ color: accent }} strokeWidth={1.8} />
+                    <Icon 
+                        size={20} 
+                        style={{ color: isLowStock ? accent : 'var(--text-faint)' }} 
+                        strokeWidth={2} 
+                    />
                 </div>
             </div>
-            {/* Subtle decorative circle */}
-            <div
-                className="absolute -right-8 -bottom-8 w-28 h-28 rounded-full"
-                style={{ background: accent, opacity: 0.03 }}
-            />
         </div>
     );
 }
@@ -72,7 +68,7 @@ function AdvisoryModal({ advisory, onClose }: { advisory: HealthAdvisory; onClos
                 <div className="flex items-start justify-between p-6" style={{ borderBottom: '1px solid var(--border)' }}>
                     <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                            <span className={`text-[13px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider ${advisory.riskLevel === 'HIGH' ? 'text-red-600' :
+                            <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider ${advisory.riskLevel === 'HIGH' ? 'text-red-600' :
                                     advisory.riskLevel === 'MEDIUM' ? 'text-orange-600' : 'text-blue-600'
                                 }`}
                                 style={{
@@ -84,7 +80,7 @@ function AdvisoryModal({ advisory, onClose }: { advisory: HealthAdvisory; onClos
                             >
                                 AI {advisory.riskLevel} Priority
                             </span>
-                            <span className="text-[13px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider"
+                            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider"
                                 style={{ background: 'var(--bg-wash)', color: 'var(--text-muted)' }}
                             >
                                 {advisory.category}
@@ -109,20 +105,20 @@ function AdvisoryModal({ advisory, onClose }: { advisory: HealthAdvisory; onClos
                         borderLeft: `4px solid ${advisory.riskLevel === 'HIGH' ? 'var(--danger)' :
                             advisory.riskLevel === 'MEDIUM' ? 'var(--warning)' : 'var(--accent)'}`,
                     }}>
-                        <p className="text-[15px] leading-relaxed font-medium" style={{ color: 'var(--text-primary)' }}>{advisory.summary}</p>
+                        <p className="text-sm leading-relaxed font-medium" style={{ color: 'var(--text-primary)' }}>{advisory.summary}</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {advisory.healthConcerns.length > 0 && (
                             <div>
-                                <h3 className="font-semibold text-[15px] uppercase tracking-wider mb-3 flex items-center gap-2"
+                                <h3 className="font-semibold text-sm uppercase tracking-wider mb-3 flex items-center gap-2"
                                     style={{ color: 'var(--text-primary)' }}>
                                     <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--danger)' }} />
                                     Key Concerns
                                 </h3>
                                 <ul className="space-y-2">
                                     {advisory.healthConcerns.map((rec, i) => (
-                                        <li key={i} className="flex items-start gap-2 text-[15px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                                        <li key={i} className="flex items-start gap-2 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                                             • {rec}
                                         </li>
                                     ))}
@@ -132,14 +128,14 @@ function AdvisoryModal({ advisory, onClose }: { advisory: HealthAdvisory; onClos
 
                         {advisory.preventiveActions.length > 0 && (
                             <div>
-                                <h3 className="font-semibold text-[15px] uppercase tracking-wider mb-3 flex items-center gap-2"
+                                <h3 className="font-semibold text-sm uppercase tracking-wider mb-3 flex items-center gap-2"
                                     style={{ color: 'var(--text-primary)' }}>
                                     <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--success)' }} />
                                     Preventive Actions
                                 </h3>
                                 <ul className="space-y-2">
                                     {advisory.preventiveActions.map((rec, i) => (
-                                        <li key={i} className="flex items-start gap-2 text-[15px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                                        <li key={i} className="flex items-start gap-2 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                                             • {rec}
                                         </li>
                                     ))}
@@ -149,7 +145,7 @@ function AdvisoryModal({ advisory, onClose }: { advisory: HealthAdvisory; onClos
                     </div>
 
                     {advisory.sourceUrl && (
-                        <div className="pt-4 flex items-center justify-between text-[13px]" style={{ borderTop: '1px solid var(--border-light)', color: 'var(--text-muted)' }}>
+                        <div className="pt-4 flex items-center justify-between text-xs" style={{ borderTop: '1px solid var(--border-light)', color: 'var(--text-muted)' }}>
                             <span className="font-medium">Published: {new Date(advisory.publishedAt).toLocaleDateString()}</span>
                             <a
                                 href={advisory.sourceUrl}
@@ -202,7 +198,6 @@ export default function Dashboard() {
     const [showAllNews, setShowAllNews] = useState(false);
 
 
-
     useEffect(() => {
         const loadNews = async () => {
             if (state.advisories.length === 0) {
@@ -238,10 +233,10 @@ export default function Dashboard() {
 
             {/* ── KPI Value Cards — 3-Second Rule ── */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-                <KPICard icon={Clock} label="Pending Appointments" value={pendingAppointments} accent="#E5A832" sub="Awaiting schedule" />
-                <KPICard icon={Activity} label="Active Clinics" value={totalClinics} accent="#48BBEE" sub="All campuses" />
-                <KPICard icon={Users} label="Patient Records" value={totalUsers} accent="#2EBD85" sub="Registered patients" />
-                <KPICard icon={AlertTriangle} label="Low Stock Items" value={lowStockItems} accent="#E25C5C" sub="Needs restocking" />
+                <KPICard icon={Clock} label="Pending Appointments" value={pendingAppointments} accent="#E5A832" />
+                <KPICard icon={Activity} label="Active Clinics" value={totalClinics} accent="#48BBEE" />
+                <KPICard icon={Users} label="Patient Records" value={totalUsers} accent="#2EBD85" />
+                <KPICard icon={AlertTriangle} label="Low Stock Items" value={lowStockItems} accent="#E25C5C" />
             </div>
 
             {/* ── AI Health Advisories ── */}
@@ -300,7 +295,7 @@ export default function Dashboard() {
                                 }}
                             >
                                 <div className="flex items-start justify-between mb-3 relative z-10">
-                                    <div className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider"
+                                    <div className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider"
                                         style={{
                                             background: adj.riskLevel === 'HIGH' ? 'var(--danger-bg)' :
                                                 adj.riskLevel === 'MEDIUM' ? 'var(--warning-bg)' : 'var(--accent-light)',
@@ -310,25 +305,25 @@ export default function Dashboard() {
                                     >
                                         {adj.riskLevel} Risk
                                     </div>
-                                    <div className="text-[11px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-faint)' }}>
+                                    <div className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-faint)' }}>
                                         {adj.category}
                                     </div>
                                 </div>
 
-                                <h4 className="font-semibold text-[15px] mb-2 line-clamp-1 leading-snug transition-colors relative z-10"
+                                <h4 className="font-semibold text-sm mb-2 line-clamp-1 leading-snug transition-colors relative z-10"
                                     style={{ color: 'var(--text-primary)' }}>
                                     {adj.title}
                                 </h4>
 
-                                <p className="text-[13px] line-clamp-2 leading-relaxed mb-4 flex-1 relative z-10" style={{ color: 'var(--text-muted)' }}>
+                                <p className="text-xs line-clamp-2 leading-relaxed mb-4 flex-1 relative z-10" style={{ color: 'var(--text-muted)' }}>
                                     {adj.oneSentenceSummary || adj.summary.replace('⚠️', '')}
                                 </p>
 
                                 <div className="flex items-center justify-between pt-3 relative z-10" style={{ borderTop: '1px solid var(--border-light)' }}>
-                                    <span className="text-[13px] font-semibold uppercase tracking-wider group-hover:translate-x-0.5 transition-transform" style={{ color: 'var(--accent)' }}>
+                                    <span className="text-[11px] font-semibold uppercase tracking-wider group-hover:translate-x-0.5 transition-transform" style={{ color: 'var(--accent)' }}>
                                         Read Insights →
                                     </span>
-                                    <span className="text-[11px] font-medium" style={{ color: 'var(--text-faint)' }}>
+                                    <span className="text-[10px] font-medium" style={{ color: 'var(--text-faint)' }}>
                                         {new Date(adj.publishedAt).toLocaleDateString()}
                                     </span>
                                 </div>
@@ -355,8 +350,8 @@ export default function Dashboard() {
                             }}
                         >
                             <Info size={32} className="mb-2 opacity-20" />
-                            <p className="text-[15px] font-medium uppercase tracking-wider opacity-50">No health insights found</p>
-                            <p className="text-[13px] mt-1">Try syncing news to generate fresh advisories.</p>
+                            <p className="text-sm font-medium uppercase tracking-wider opacity-50">No health insights found</p>
+                            <p className="text-xs mt-1">Try syncing news to generate fresh advisories.</p>
                         </div>
                     )}
                 </div>
@@ -365,7 +360,7 @@ export default function Dashboard() {
                     <div className="flex justify-center pt-2">
                         <button
                             onClick={() => setShowAllNews(!showAllNews)}
-                            className="px-5 py-2 rounded-lg text-[13px] font-semibold uppercase tracking-wider transition-all hover:bg-black/5"
+                            className="px-5 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all hover:bg-black/5"
                             style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)', background: 'var(--card-bg)' }}
                         >
                             {showAllNews ? 'Show Less' : 'Show More'}
@@ -470,8 +465,8 @@ export default function Dashboard() {
                                                     }}
                                                 />
                                             </div>
-                                            <span className="text-[10px] font-bold tabular-nums w-[36px] text-right" style={{ color: pct >= 70 ? '#2EBD85' : pct >= 40 ? '#E5A832' : '#E25C5C' }}>
-                                                {pct}%
+                                            <span className="text-[10px] font-bold tabular-nums min-w-[85px] text-right shrink-0" style={{ color: pct >= 70 ? '#2EBD85' : pct >= 40 ? '#E5A832' : '#E25C5C' }}>
+                                                {pct}% <span className="text-[10px] font-bold opacity-70 ml-1">({item.resolved}/{item.total})</span>
                                             </span>
                                         </div>
                                     );

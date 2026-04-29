@@ -26,6 +26,7 @@ export type NotificationType =
   | 'medicine_request_accepted'
   | 'medicine_request_rejected'
   | 'medicine_request_dispensed'
+  | 'medicine_dispense_qr'
   | 'inquiry_reply' 
   | 'duty_assignment' 
   | 'visit_record_added'
